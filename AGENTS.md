@@ -1,14 +1,14 @@
+# Instructions for AI Agents and LLMs
 
-# Instruções para Agentes de IA e LLMs
+Whenever generating code for this repository, strictly obey the following architecture rules:
 
-Sempre que gerar código para este repositório, obedeça estritamente às seguintes regras de arquitetura:
-
-1. **Separação de Preocupações:** Os componentes React (`src/components`) são estritamente para apresentação. Eles NUNCA devem fazer chamadas `fetch` ou `axios` diretamente.
-2. **Serviços:** Qualquer comunicação com o backend deve ser escrita como uma função assíncrona pura dentro de `src/services/`.
-3. **Lógica de Interface:** Utilize Custom Hooks (`src/hooks/`) para orquestrar chamadas de serviços e atualizar o estado global.
-4. **Estado:** Use `zustand` para estado global. Não utilize Redux.
-5. **Validação:** Sempre utilize `zod` para validação de formulários ou payloads de API.
-6. **Linter:** O projeto utiliza `@biomejs/biome`. Evite configurações exclusivas de ESLint no código gerado.
+1. **Separation of Concerns:** React components (`src/components`) are strictly for presentation. They must NEVER make `fetch` or `axios` calls directly.
+2. **Services:** Any communication with the backend must be written as a pure asynchronous function inside `src/services/`.
+3. **UI Logic:** Use Custom Hooks (`src/hooks/`) to orchestrate service calls and update global state.
+4. **State Management:** Use `zustand` for global state. Do not use Redux.
+5. **Validation:** Always use `zod` for form or API payload validation.
+6. **Linter:** The project uses `@biomejs/biome`. Avoid exclusive ESLint configurations in generated code.
+7. **Design & Colors:** Strictly adhere to the foundational color palette and design tokens defined in `src/app/globals.css` (or the global CSS file) when styling components or creating new interfaces.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
