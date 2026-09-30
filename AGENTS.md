@@ -9,6 +9,7 @@ Whenever generating code for this repository, strictly obey the following archit
 5. **Validation:** Always use `zod` for form or API payload validation.
 6. **Linter:** The project uses `@biomejs/biome`. Avoid exclusive ESLint configurations in generated code.
 7. **Design & Colors:** Strictly adhere to the foundational color palette and design tokens defined in `src/app/globals.css` (or the global CSS file) when styling components or creating new interfaces.
+8. **Component Syntax:** Always use arrow functions (`const Component = () => ...`) for defining React components (`src/components`). Next.js pages and layouts (`src/app`) should use named functions (`export default function PageOrLayout() { ... }`).
 
 <!-- BEGIN:nextjs-agent-rules -->
 
