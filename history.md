@@ -205,3 +205,68 @@
 
 - **Linter & Code Quality**: Formatted and validated strictly with `@biomejs/biome` (`npx biome check`).
 - **Build Verification**: Tested production build successfully via `npm run build`.
+
+---
+
+# Implementation History: Admin Product List, UI Abstractions & Server Component Integration
+
+> **Associated Issue**: [#34](https://github.com/CEIF-Time-3/CEIF-Front/issues/34)  
+> **Status**: Completed  
+> **Target Branch / Scope**: Admin Product View, UI Primitives & Server Hydration (`feat/admin-product-view`)
+
+---
+
+## Issue #33 Metadata Schema
+
+| Metadata Key           | Value                                                                                                    |
+| :--------------------- | :------------------------------------------------------------------------------------------------------- |
+| **Issue Number**       | `#34`                                                                                                    |
+| **Title**              | Admin Product View, Reusable Table UI, TanStack DataTable & Select Input Abstractions                    |
+| **Domain**             | Frontend (`src/app/admin/produtos`, `src/components`, `src/features/products`, `AGENTS.md`)              |
+| **Primary Frameworks** | Next.js App Router (Server Components), `@tanstack/react-table`, Base UI, Tailwind CSS, `@biomejs/biome` |
+| **Type**               | Feature, Architecture & Refactoring                                                                      |
+
+---
+
+## Issue #33 Execution Breakdown
+
+### 1. Admin Product View & Server Component Page (`src/app/admin/produtos/page.tsx`, `src/features/products/components/admin-product-section.tsx`)
+
+- **Server Component Page**: Converted `/admin/produtos/page.tsx` into an async Next.js App Router Server Component, directly fetching initial product data and category lists via `productService.getProducts()` and `productService.getCategories()`.
+- **Client Section Wrapper**: Built `AdminProductSection` (`"use client"`) to orchestrate interactive UI presentation, search filters, and table views with server data hydration.
+
+---
+
+### 2. Generic DataTable Primitive & TanStack Table (`src/components/data-table.tsx`, `src/components/ui/table.tsx`)
+
+- **Table UI Primitives**: Created `src/components/ui/table.tsx` (`Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`, `TableCaption`, `TableFooter`) adhering to OKLCH color design tokens and arrow function component syntax.
+- **TanStack DataTable Abstraction**: Built `DataTable` in `src/components/data-table.tsx` wrapping `@tanstack/react-table` (v8) for generic data rendering, pagination, skeleton loading, and empty states.
+- **Admin Product Table Integration**: Refactored `AdminProductTable` (`src/features/products/components/admin-product-table.tsx`) to define `ColumnDef<Product>[]` schemas and delegate rendering to `DataTable`.
+
+---
+
+### 3. Reusable Select Input Abstraction (`src/components/inputs/select-input.tsx`, `src/components/ui/select.tsx`)
+
+- **Select Primitives**: Refactored `src/components/ui/select.tsx` components to use arrow function component syntax.
+- **SelectInput Abstraction**: Built `SelectInput` in `src/components/inputs/select-input.tsx` to encapsulate `@/components/ui/select` primitives, accepting unified `options` arrays (`string[]` or `{ label, value, disabled }[]`).
+- **Filter Toolbar Refactoring**: Replaced all native HTML `<select>` elements in `AdminProductFilters` (`src/features/products/components/admin-product-filters.tsx`) with `SelectInput`.
+
+---
+
+### 4. Layout Overflow & Mobile Responsiveness (`src/app/admin/layout.tsx`, `src/features/products/components/admin-product-stats.tsx`)
+
+- **Layout Constraints**: Added `min-w-0` and `overflow-x-hidden` constraints to `SidebarInset` and `<main>` in `src/app/admin/layout.tsx` to prevent content from causing horizontal window scrolling on mobile screens.
+- **Stats Card Layout**: Refactored `AdminProductStats` to truncate long text titles with `min-w-0 block truncate` and updated grid breakpoints to `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5`.
+
+---
+
+### 5. Architecture & Code Standard Compliance (`AGENTS.md`)
+
+- **Rule 9 (React Imports & Namespacing)**: Added Rule 9 to `AGENTS.md` enforcing `import React from "react";` (or `import type React from "react";`) and explicit `React.` hook namespacing (`React.useState`, `React.useEffect`, `React.useCallback`, `React.useMemo`), eliminating `import * as React`.
+
+---
+
+## Verification & Tooling
+
+- **Linter & Code Quality**: Checked and formatted strictly with `@biomejs/biome` (`npx biome check src`).
+- **Build Verification**: Tested and verified production build successfully via `npm run build`.
