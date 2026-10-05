@@ -139,3 +139,69 @@
 
 - **Linter & Code Quality**: Code checked and validated using `@biomejs/biome` (`npx biome check src`).
 - **Build Verification**: Production build tested and verified via `npm run build`.
+
+---
+
+# Implementation History: Client Product List & Category Filtering
+
+> **Associated Issue**: [#33](https://github.com/CEIF-Time-3/CEIF-Front/issues/33)  
+> **Status**: Completed  
+> **Target Branch / Scope**: Client Product List & Filtering (`feat/client-product-list`)
+
+---
+
+## Issue #41 Metadata Schema
+
+| Metadata Key           | Value                                                                                                   |
+| :--------------------- | :------------------------------------------------------------------------------------------------------ |
+| **Issue Number**       | `#33`                                                                                                   |
+| **Title**              | Client Product Catalog, Search, Responsive Category Filtering & Utilities                               |
+| **Domain**             | Frontend (`src/features/products`, `src/schemas`, `src/utils`, `src/components/ui`, `src/app/(client)`) |
+| **Primary Frameworks** | Next.js App Router, Tailwind CSS, Zustand, Zod, `@biomejs/biome`                                        |
+| **Type**               | Feature & UI/UX Enhancement                                                                             |
+
+---
+
+## Issue #41 Execution Breakdown
+
+### 1. Product Schemas & Validation (`src/features/products/schemas/product-schema.ts`, `src/schemas/product-schema.ts`)
+
+- **Validation**: Defined Zod schemas (`productSchema`, `productCategorySchema`) to validate product attributes (ID, name, description, price, category, imageUrl, and availability).
+
+---
+
+### 2. Services & State Management (`src/features/products/services/product-service.ts`, `src/features/products/stores/use-product-store.ts`)
+
+- **Product Service**: Created pure asynchronous functions (`fetchProducts`, `fetchCategories`) inside `src/features/products/services/` complying with architectural separation of concerns.
+- **Zustand Global State**: Configured `useProductStore` using `zustand` to manage product data, active category selection, and search query state.
+
+---
+
+### 3. UI Logic & Custom Hook (`src/features/products/hooks/use-products.ts`)
+
+- **Custom Hook**: Implemented `useProducts` hook to orchestrate `product-service` calls, filter products dynamically by title/description and active category, and maintain UI state.
+
+---
+
+### 4. Presentation Components (`src/features/products/components/*`)
+
+- **`ProductCategoryFilter` (`product-category-filter.tsx`)**: Created category selection buttons using `flex-wrap` layout to guarantee full visibility on Mobile S screens (~320px) without horizontal clipping or scrollbar truncation.
+- **`ProductCard` (`product-card.tsx`)**: Product presentation card featuring food image, category badge, formatted BRL price, and "Adicionar" action button.
+- **`ProductSearch` (`product-search.tsx`)**: Real-time product search input field with search icon and clear actions.
+- **`ProductList` (`product-list.tsx`)**: Grid component displaying filtered product items, empty state message, and filter reset options.
+- **`ProductListSkeleton` (`product-list-skeleton.tsx`)**: Loading state skeleton components.
+- **`ProductSection` (`product-section.tsx`)**: Client home section integrating header, search input, category filter buttons, product counter, and product grid layout into `src/app/(client)/page.tsx`.
+
+---
+
+### 5. Formatting Utilities & UI Primitives (`src/utils/format-price.ts`, `src/components/ui/card.tsx`)
+
+- **Price Utility**: Implemented `formatPrice` helper function utilizing `Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })`.
+- **Card Primitives**: Created presentation `Card` subcomponents (`Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter`).
+
+---
+
+## Verification & Tooling
+
+- **Linter & Code Quality**: Formatted and validated strictly with `@biomejs/biome` (`npx biome check`).
+- **Build Verification**: Tested production build successfully via `npm run build`.
