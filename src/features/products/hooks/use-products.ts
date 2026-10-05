@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useMemo } from "react";
+import React from "react";
+import type { Product } from "@/features/products/schemas/product-schema";
 import { productService } from "@/features/products/services/product-service";
 import { useProductStore } from "@/features/products/stores/use-product-store";
 
-export const useProducts = () => {
+export const useProducts = (
+	initialProducts?: Product[],
+	initialCategories?: string[],
+) => {
 	const {
 		products,
 		categories,
@@ -10,18 +14,23 @@ export const useProducts = () => {
 		error,
 		searchQuery,
 		selectedCategory,
+		statusFilter,
 		sortBy,
 		setProducts,
 		setCategories,
 		setSearchQuery,
 		setSelectedCategory,
+		setStatusFilter,
 		setSortBy,
 		setIsLoading,
 		setError,
+		toggleProductAvailabilityState,
+		removeProductFromState,
+		addProductToState,
 		resetFilters,
 	} = useProductStore();
 
-	const loadProductsData = useCallback(async () => {
+	const loadProductsData = React.useCallback(async () => {
 		setIsLoading(true);
 		setError(null);
 
@@ -44,11 +53,79 @@ export const useProducts = () => {
 		}
 	}, [setProducts, setCategories, setIsLoading, setError]);
 
-	useEffect(() => {
-		loadProductsData();
-	}, [loadProductsData]);
+	React.useEffect(() => {
+		if (initialProducts && initialProducts.length > 0) {
+			setProducts(initialProducts);
+		}
+		if (initialCategories && initialCategories.length > 0) {
+			setCategories(initialCategories);
+		}
+		if (!initialProducts && products.length === 0) {
+			loadProductsData();
+		}
+	}, [
+		initialProducts,
+		initialCategories,
+		products.length,
+		loadProductsData,
+		setProducts,
+		setCategories,
+	]);
 
-	const filteredProducts = useMemo(() => {
+	const toggleAvailability = React.useCallback(
+		async (id: string) => {
+			try {
+				toggleProductAvailabilityState(id);
+				await productService.toggleAvailability(id);
+			} catch (err) {
+				toggleProductAvailabilityState(id);
+				const message =
+					err instanceof Error
+						? err.message
+						: "Erro ao alterar disponibilidade do produto.";
+				setError(message);
+			}
+		},
+		[toggleProductAvailabilityState, setError],
+	);
+
+	const deleteProduct = React.useCallback(
+		async (id: string) => {
+			try {
+				removeProductFromState(id);
+				await productService.deleteProduct(id);
+			} catch (err) {
+				loadProductsData();
+				const message =
+					err instanceof Error ? err.message : "Erro ao excluir o produto.";
+				setError(message);
+			}
+		},
+		[removeProductFromState, loadProductsData, setError],
+	);
+
+	const createProduct = React.useCallback(
+		async (productData: Omit<Product, "id">) => {
+			setIsLoading(true);
+			try {
+				const created = await productService.createProduct(productData);
+				addProductToState(created);
+				const updatedCategories = await productService.getCategories();
+				setCategories(updatedCategories);
+				return created;
+			} catch (err) {
+				const message =
+					err instanceof Error ? err.message : "Erro ao cadastrar produto.";
+				setError(message);
+				throw err;
+			} finally {
+				setIsLoading(false);
+			}
+		},
+		[addProductToState, setCategories, setIsLoading, setError],
+	);
+
+	const filteredProducts = React.useMemo(() => {
 		let result = [...products];
 
 		if (searchQuery.trim() !== "") {
@@ -67,6 +144,12 @@ export const useProducts = () => {
 			);
 		}
 
+		if (statusFilter === "available") {
+			result = result.filter((p) => p.isAvailable === true);
+		} else if (statusFilter === "unavailable") {
+			result = result.filter((p) => p.isAvailable === false);
+		}
+
 		switch (sortBy) {
 			case "price-desc":
 				result.sort((a, b) => b.price - a.price);
@@ -83,7 +166,7 @@ export const useProducts = () => {
 		}
 
 		return result;
-	}, [products, searchQuery, selectedCategory, sortBy]);
+	}, [products, searchQuery, selectedCategory, statusFilter, sortBy]);
 
 	return {
 		products,
@@ -93,10 +176,15 @@ export const useProducts = () => {
 		error,
 		searchQuery,
 		selectedCategory,
+		statusFilter,
 		sortBy,
 		setSearchQuery,
 		setSelectedCategory,
+		setStatusFilter,
 		setSortBy,
+		toggleAvailability,
+		deleteProduct,
+		createProduct,
 		resetFilters,
 		refetch: loadProductsData,
 	};

@@ -1,3 +1,7 @@
+export { AdminProductFilters } from "./admin-product-filters";
+export { AdminProductSection } from "./admin-product-section";
+export { AdminProductStats } from "./admin-product-stats";
+export { AdminProductTable } from "./admin-product-table";
 export { ProductCard } from "./product-card";
 export { ProductCategoryFilter } from "./product-category-filter";
 export { ProductList } from "./product-list";

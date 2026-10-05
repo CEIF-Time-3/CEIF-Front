@@ -10,6 +10,7 @@ Whenever generating code for this repository, strictly obey the following archit
 6. **Linter:** The project uses `@biomejs/biome`. Avoid exclusive ESLint configurations in generated code.
 7. **Design & Colors:** Strictly adhere to the foundational color palette and design tokens defined in `src/app/globals.css` (or the global CSS file) when styling components or creating new interfaces.
 8. **Component Syntax:** Always use arrow functions (`const Component = () => ...`) for defining React components (`src/components`). Next.js pages and layouts (`src/app`) should use named functions (`export default function PageOrLayout() { ... }`).
+9. **React Imports & Namespacing:** Always use `import React from "react";` (or `import type React from "react";` for type-only references) when importing React, and explicitly prefix React hooks and functions with `React.` (e.g., `React.useState`, `React.useEffect`, `React.useCallback`, `React.useMemo`). Avoid `import * as React`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

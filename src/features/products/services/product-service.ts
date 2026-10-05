@@ -5,7 +5,7 @@ import {
 	productSchema,
 } from "@/features/products/schemas/product-schema";
 
-const MOCK_PRODUCTS: Product[] = [
+let MOCK_PRODUCTS: Product[] = [
 	{
 		id: "prod-1",
 		name: "Pastel Especial de Carne",
@@ -70,7 +70,7 @@ const MOCK_PRODUCTS: Product[] = [
 		category: "Salgados",
 		imageUrl:
 			"https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=600&auto=format&fit=crop&q=80",
-		isAvailable: true,
+		isAvailable: false,
 		rating: 4.6,
 		prepTime: "10-12 min",
 	},
@@ -143,7 +143,7 @@ const MOCK_PRODUCTS: Product[] = [
 
 export const productService = {
 	async getProducts(filter?: ProductFilter): Promise<Product[]> {
-		await new Promise((resolve) => setTimeout(resolve, 300));
+		await new Promise((resolve) => setTimeout(resolve, 200));
 
 		const validatedProducts = z.array(productSchema).parse(MOCK_PRODUCTS);
 
@@ -176,10 +176,39 @@ export const productService = {
 	},
 
 	async getCategories(): Promise<string[]> {
-		await new Promise((resolve) => setTimeout(resolve, 150));
+		await new Promise((resolve) => setTimeout(resolve, 100));
 		const categories = Array.from(
 			new Set(MOCK_PRODUCTS.map((p) => p.category)),
 		);
 		return ["Todos", ...categories];
+	},
+
+	async toggleAvailability(id: string): Promise<Product> {
+		await new Promise((resolve) => setTimeout(resolve, 150));
+		const product = MOCK_PRODUCTS.find((p) => p.id === id);
+		if (!product) {
+			throw new Error("Produto não encontrado.");
+		}
+		product.isAvailable = !product.isAvailable;
+		return productSchema.parse(product);
+	},
+
+	async deleteProduct(id: string): Promise<void> {
+		await new Promise((resolve) => setTimeout(resolve, 150));
+		MOCK_PRODUCTS = MOCK_PRODUCTS.filter((p) => p.id !== id);
+	},
+
+	async createProduct(
+		productData: Omit<Product, "id"> & { id?: string },
+	): Promise<Product> {
+		await new Promise((resolve) => setTimeout(resolve, 200));
+		const newProduct: Product = {
+			...productData,
+			id: productData.id || `prod-${Date.now()}`,
+			isAvailable: productData.isAvailable ?? true,
+		};
+		const validated = productSchema.parse(newProduct);
+		MOCK_PRODUCTS.unshift(validated);
+		return validated;
 	},
 };
