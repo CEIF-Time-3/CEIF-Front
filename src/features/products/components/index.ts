@@ -1,7 +1,12 @@
-export { AdminProductFilters } from "./admin-product-filters";
+export {
+	AdminProductFilters,
+	type ProductStatusFilter,
+} from "./admin-product-filters";
 export { AdminProductSection } from "./admin-product-section";
 export { AdminProductStats } from "./admin-product-stats";
 export { AdminProductTable } from "./admin-product-table";
+export { ProductCreateForm } from "./forms/product-create-form";
+export { ProductAvailabilityToggle } from "./product-availability-toggle";
 export { ProductCard } from "./product-card";
 export { ProductCategoryFilter } from "./product-category-filter";
 export { ProductList } from "./product-list";

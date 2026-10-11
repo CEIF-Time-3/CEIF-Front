@@ -1,27 +1,47 @@
 "use client";
 
 import { Utensils } from "lucide-react";
+import React from "react";
+
 import { ProductCategoryFilter } from "@/features/products/components/product-category-filter";
 import { ProductList } from "@/features/products/components/product-list";
 import { ProductSearch } from "@/features/products/components/product-search";
-import { useProducts } from "@/features/products/hooks/use-products";
 import type { Product } from "@/features/products/schemas/product-schema";
+import { MOCK_CATEGORIES, MOCK_PRODUCTS } from "@/mocks/products";
 
 interface ProductSectionProps {
 	onAddToCart?: (product: Product) => void;
 }
 
 export const ProductSection = ({ onAddToCart }: ProductSectionProps) => {
-	const {
-		filteredProducts,
-		categories,
-		isLoading,
-		searchQuery,
-		selectedCategory,
-		setSearchQuery,
-		setSelectedCategory,
-		resetFilters,
-	} = useProducts();
+	const [searchQuery, setSearchQuery] = React.useState("");
+	const [selectedCategory, setSelectedCategory] = React.useState("Todos");
+
+	const categories = React.useMemo(
+		() => ["Todos", ...MOCK_CATEGORIES.map((c) => c.name)],
+		[],
+	);
+
+	const resetFilters = React.useCallback(() => {
+		setSearchQuery("");
+		setSelectedCategory("Todos");
+	}, []);
+
+	const filteredProducts = React.useMemo(() => {
+		let result = [...MOCK_PRODUCTS];
+
+		if (searchQuery.trim() !== "") {
+			const query = searchQuery.toLowerCase().trim();
+			result = result.filter(
+				(p) =>
+					p.name.toLowerCase().includes(query) ||
+					p.description?.toLowerCase().includes(query) ||
+					p.ingredients?.toLowerCase().includes(query),
+			);
+		}
+
+		return result;
+	}, [searchQuery]);
 
 	return (
 		<section className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -72,7 +92,7 @@ export const ProductSection = ({ onAddToCart }: ProductSectionProps) => {
 
 			<ProductList
 				products={filteredProducts}
-				isLoading={isLoading}
+				isLoading={false}
 				onAddToCart={onAddToCart}
 				onResetFilters={resetFilters}
 			/>

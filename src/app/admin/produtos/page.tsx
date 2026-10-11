@@ -1,16 +1,11 @@
 import { AdminProductSection } from "@/features/products/components";
-import { productService } from "@/features/products/services/product-service";
+import { MOCK_CATEGORIES, MOCK_PRODUCTS } from "@/mocks/products";
 
-export default async function AdminProductsPage() {
-	const [products, categories] = await Promise.all([
-		productService.getProducts(),
-		productService.getCategories(),
-	]);
-
+export default function AdminProductsPage() {
 	return (
 		<AdminProductSection
-			initialProducts={products}
-			initialCategories={categories}
+			initialProducts={MOCK_PRODUCTS}
+			initialCategories={["Todos", ...MOCK_CATEGORIES.map((c) => c.name)]}
 		/>
 	);
 }

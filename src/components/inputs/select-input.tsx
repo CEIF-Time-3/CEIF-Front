@@ -1,5 +1,13 @@
 "use client";
 
+import React from "react";
+
+import {
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+} from "@/components/ui/field";
 import {
 	Select,
 	SelectContent,
@@ -21,7 +29,13 @@ export interface SelectInputProps {
 	onValueChange?: (value: string) => void;
 	options: (SelectOption | string)[];
 	placeholder?: string;
-	label?: string;
+	label?: React.ReactNode;
+	labelRight?: React.ReactNode;
+	description?: React.ReactNode;
+	error?: string | Array<{ message?: string } | undefined>;
+	required?: boolean;
+	orientation?: "vertical" | "horizontal" | "responsive";
+	containerClassName?: string;
 	id?: string;
 	disabled?: boolean;
 	className?: string;
@@ -38,6 +52,12 @@ export const SelectInput = ({
 	options,
 	placeholder = "Selecione uma opção",
 	label,
+	labelRight,
+	description,
+	error,
+	required = false,
+	orientation = "vertical",
+	containerClassName,
 	id,
 	disabled = false,
 	className,
@@ -46,16 +66,38 @@ export const SelectInput = ({
 	side = "bottom",
 	align = "start",
 }: SelectInputProps) => {
-	const normalizedOptions: SelectOption[] = options.map((opt) =>
-		typeof opt === "string" ? { label: opt, value: opt } : opt,
+	const generatedId = React.useId();
+	const selectId = id || generatedId;
+	const isInvalid = Boolean(error);
+	const errorsList = typeof error === "string" ? [{ message: error }] : error;
+
+	const normalizedOptions: SelectOption[] = React.useMemo(
+		() =>
+			options.map((opt) =>
+				typeof opt === "string" ? { label: opt, value: opt } : opt,
+			),
+		[options],
 	);
 
 	return (
-		<div className={cn("flex flex-col gap-1.5", className)}>
-			{label && (
-				<label htmlFor={id} className="text-foreground text-xs font-semibold">
-					{label}
-				</label>
+		<Field
+			orientation={orientation}
+			data-invalid={isInvalid}
+			className={cn("gap-1", containerClassName, className)}
+		>
+			{(label || labelRight) && (
+				<div className="flex items-center justify-between">
+					{label && (
+						<FieldLabel
+							htmlFor={selectId}
+							className="text-foreground flex items-center gap-1 text-xs font-semibold"
+						>
+							{label}
+							{required && <span className="text-destructive">*</span>}
+						</FieldLabel>
+					)}
+					{labelRight}
+				</div>
 			)}
 			<Select
 				value={value}
@@ -68,11 +110,24 @@ export const SelectInput = ({
 				disabled={disabled}
 			>
 				<SelectTrigger
-					id={id}
+					id={selectId}
 					size={size}
-					className={cn("bg-background text-xs", triggerClassName)}
+					aria-invalid={isInvalid}
+					className={cn(
+						"bg-background w-full text-xs transition-all",
+						isInvalid && "border-destructive focus-visible:ring-destructive/20",
+						triggerClassName,
+					)}
 				>
-					<SelectValue placeholder={placeholder} />
+					<SelectValue placeholder={placeholder}>
+						{(selectedValue) => {
+							if (!selectedValue) return placeholder;
+							const foundOption = normalizedOptions.find(
+								(opt) => opt.value === selectedValue,
+							);
+							return foundOption ? foundOption.label : selectedValue;
+						}}
+					</SelectValue>
 				</SelectTrigger>
 				<SelectContent side={side} align={align} className="w-full">
 					{normalizedOptions.map((option) => (
@@ -86,6 +141,10 @@ export const SelectInput = ({
 					))}
 				</SelectContent>
 			</Select>
-		</div>
+			{description && <FieldDescription>{description}</FieldDescription>}
+			{error && (
+				<FieldError errors={errorsList} className="text-[11px] font-medium" />
+			)}
+		</Field>
 	);
 };
