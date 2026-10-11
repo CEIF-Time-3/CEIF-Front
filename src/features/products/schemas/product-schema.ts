@@ -1,25 +1,40 @@
 import { z } from "zod";
 
 export const productSchema = z.object({
-	id: z.string().min(1, "ID é obrigatório"),
-	name: z.string().min(1, "Nome é obrigatório"),
-	description: z.string(),
-	price: z.number().positive("Preço deve ser positivo"),
-	category: z.string().min(1, "Categoria é obrigatória"),
-	imageUrl: z.string().optional(),
-	isAvailable: z.boolean().default(true),
-	badge: z.string().optional(),
-	rating: z.number().min(0).max(5).optional(),
-	prepTime: z.string().optional(),
+  id: z.string().min(1, "ID é obrigatório"),
+  name: z.string().min(1, "Nome é obrigatório"),
+  price: z.string().min(1, "Preço é obrigatório"),
+  imageUrl: z.string().nullable(),
+  description: z.string().nullable(),
+  available: z.boolean().default(true),
+  ingredients: z.string().nullable(),
+});
+
+export const productCreateSchema = z.object({
+  name: z
+    .string()
+    .min(1, "O nome do produto é obrigatório")
+    .max(255, "O nome deve ter no máximo 255 caracteres"),
+  price: z.string().min(1, "O preço é obrigatório"),
+  categoryId: z.string().optional(),
+  imageUrl: z.string().nullable().optional(),
+  description: z
+    .string()
+    .max(500, "A descrição deve ter no máximo 500 caracteres")
+    .nullable()
+    .optional(),
+  available: z.boolean().default(true),
+  ingredients: z.string().nullable().optional(),
 });
 
 export const productFilterSchema = z.object({
-	search: z.string().optional(),
-	category: z.string().optional(),
-	sortBy: z
-		.enum(["featured", "price-asc", "price-desc", "name-asc", "name-desc"])
-		.optional(),
+  search: z.string().optional(),
+  category: z.string().optional(),
+  sortBy: z
+    .enum(["featured", "price-asc", "price-desc", "name-asc", "name-desc"])
+    .optional(),
 });
 
 export type Product = z.infer<typeof productSchema>;
+export type ProductCreateInput = z.infer<typeof productCreateSchema>;
 export type ProductFilter = z.infer<typeof productFilterSchema>;

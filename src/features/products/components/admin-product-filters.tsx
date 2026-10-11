@@ -5,7 +5,8 @@ import { FilterX, Search, SlidersHorizontal } from "lucide-react";
 import { SelectInput } from "@/components/inputs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { ProductStatusFilter } from "@/features/products/stores/use-product-store";
+
+export type ProductStatusFilter = "all" | "available" | "unavailable";
 
 interface AdminProductFiltersProps {
 	searchQuery: string;

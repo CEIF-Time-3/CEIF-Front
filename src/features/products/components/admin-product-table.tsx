@@ -9,6 +9,7 @@ import { DataTable } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Product } from "@/features/products/schemas/product-schema";
+import { formatPrice } from "@/utils/format-price";
 
 interface AdminProductTableProps {
 	products: Product[];
@@ -58,11 +59,6 @@ export const AdminProductTable = ({
 									<span className="text-foreground text-sm font-semibold">
 										{product.name}
 									</span>
-									{product.badge && (
-										<Badge variant="secondary" className="py-0 text-[10px]">
-											{product.badge}
-										</Badge>
-									)}
 								</div>
 								<p className="text-muted-foreground line-clamp-1 max-w-70 text-xs">
 									{product.description}
@@ -73,19 +69,19 @@ export const AdminProductTable = ({
 				},
 			},
 			{
-				accessorKey: "category",
-				header: "Categoria",
+				accessorKey: "price",
+				header: "Preço",
 				cell: ({ row }) => (
-					<Badge variant="outline" className="font-medium">
-						{row.original.category}
-					</Badge>
+					<span className="font-semibold text-foreground text-sm">
+						{formatPrice(row.original.price)}
+					</span>
 				),
 			},
 			{
-				accessorKey: "isAvailable",
+				accessorKey: "available",
 				header: "Status",
 				cell: ({ row }) =>
-					row.original.isAvailable ? (
+					row.original.available ? (
 						<Badge
 							variant="default"
 							className="border-emerald-500/20 bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-400"
@@ -113,13 +109,13 @@ export const AdminProductTable = ({
 								size="icon"
 								onClick={() => onToggleAvailability(product.id)}
 								title={
-									product.isAvailable
+									product.available
 										? "Marcar como indisponível"
 										: "Marcar como disponível"
 								}
 								className="text-muted-foreground hover:text-foreground size-8"
 							>
-								{product.isAvailable ? (
+								{product.available ? (
 									<Eye className="size-4 text-emerald-600 dark:text-emerald-400" />
 								) : (
 									<EyeOff className="size-4 text-rose-500" />
