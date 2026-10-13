@@ -24,7 +24,7 @@ export const useProducts = (
 		setSortBy,
 		setIsLoading,
 		setError,
-		toggleProductAvailabilityState,
+		updateProductInState,
 		removeProductFromState,
 		addProductToState,
 		resetFilters,
@@ -72,46 +72,64 @@ export const useProducts = (
 		setCategories,
 	]);
 
+	const refreshCategories = React.useCallback(async () => {
+		try {
+			const updatedCategories = await productService.getCategories();
+			setCategories(updatedCategories);
+		} catch (err) {
+			const message =
+				err instanceof Error
+					? err.message
+					: "Não foi possível atualizar as categorias.";
+			setError(
+				`A operação foi concluída, mas houve um erro ao atualizar as categorias: ${message}`,
+			);
+		}
+	}, [setCategories, setError]);
+
 	const toggleAvailability = React.useCallback(
 		async (id: string) => {
+			setError(null);
 			try {
-				toggleProductAvailabilityState(id);
-				await productService.toggleAvailability(id);
+				const updatedProduct = await productService.toggleAvailability(id);
+				updateProductInState(updatedProduct);
 			} catch (err) {
-				toggleProductAvailabilityState(id);
 				const message =
 					err instanceof Error
 						? err.message
 						: "Erro ao alterar disponibilidade do produto.";
 				setError(message);
+				throw err;
 			}
 		},
-		[toggleProductAvailabilityState, setError],
+		[updateProductInState, setError],
 	);
 
 	const deleteProduct = React.useCallback(
 		async (id: string) => {
+			setError(null);
 			try {
-				removeProductFromState(id);
 				await productService.deleteProduct(id);
+				removeProductFromState(id);
+				await refreshCategories();
 			} catch (err) {
-				loadProductsData();
 				const message =
 					err instanceof Error ? err.message : "Erro ao excluir o produto.";
 				setError(message);
+				throw err;
 			}
 		},
-		[removeProductFromState, loadProductsData, setError],
+		[removeProductFromState, refreshCategories, setError],
 	);
 
 	const createProduct = React.useCallback(
 		async (productData: Omit<Product, "id">) => {
 			setIsLoading(true);
+			setError(null);
 			try {
 				const created = await productService.createProduct(productData);
 				addProductToState(created);
-				const updatedCategories = await productService.getCategories();
-				setCategories(updatedCategories);
+				await refreshCategories();
 				return created;
 			} catch (err) {
 				const message =
@@ -122,7 +140,25 @@ export const useProducts = (
 				setIsLoading(false);
 			}
 		},
-		[addProductToState, setCategories, setIsLoading, setError],
+		[addProductToState, refreshCategories, setIsLoading, setError],
+	);
+
+	const updateProduct = React.useCallback(
+		async (product: Product) => {
+			setError(null);
+			try {
+				const updatedProduct = await productService.updateProduct(product);
+				updateProductInState(updatedProduct);
+				await refreshCategories();
+				return updatedProduct;
+			} catch (err) {
+				const message =
+					err instanceof Error ? err.message : "Erro ao atualizar o produto.";
+				setError(message);
+				throw err;
+			}
+		},
+		[updateProductInState, refreshCategories, setError],
 	);
 
 	const filteredProducts = React.useMemo(() => {
@@ -185,6 +221,7 @@ export const useProducts = (
 		toggleAvailability,
 		deleteProduct,
 		createProduct,
+		updateProduct,
 		resetFilters,
 		refetch: loadProductsData,
 	};

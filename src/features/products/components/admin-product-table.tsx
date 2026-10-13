@@ -14,8 +14,8 @@ interface AdminProductTableProps {
 	products: Product[];
 	isLoading?: boolean;
 	itemsPerPage?: number;
-	onToggleAvailability: (id: string) => void;
-	onDeleteProduct: (id: string) => void;
+	onToggleAvailability: (product: Product) => void;
+	onDeleteProduct: (product: Product) => void;
 	onEditProduct?: (product: Product) => void;
 	onResetFilters?: () => void;
 }
@@ -111,7 +111,7 @@ export const AdminProductTable = ({
 							<Button
 								variant="ghost"
 								size="icon"
-								onClick={() => onToggleAvailability(product.id)}
+								onClick={() => onToggleAvailability(product)}
 								title={
 									product.isAvailable
 										? "Marcar como indisponível"
@@ -141,13 +141,7 @@ export const AdminProductTable = ({
 							<Button
 								variant="ghost"
 								size="icon"
-								onClick={() => {
-									if (
-										confirm(`Tem certeza que deseja excluir "${product.name}"?`)
-									) {
-										onDeleteProduct(product.id);
-									}
-								}}
+								onClick={() => onDeleteProduct(product)}
 								title="Excluir produto"
 								className="text-muted-foreground hover:text-destructive size-8"
 							>

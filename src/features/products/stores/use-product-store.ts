@@ -21,7 +21,7 @@ interface ProductState {
 	setSortBy: (sort: string) => void;
 	setIsLoading: (isLoading: boolean) => void;
 	setError: (error: string | null) => void;
-	toggleProductAvailabilityState: (id: string) => void;
+	updateProductInState: (product: Product) => void;
 	removeProductFromState: (id: string) => void;
 	addProductToState: (product: Product) => void;
 	resetFilters: () => void;
@@ -46,10 +46,10 @@ export const useProductStore = create<ProductState>((set) => ({
 	setIsLoading: (isLoading) => set({ isLoading }),
 	setError: (error) => set({ error }),
 
-	toggleProductAvailabilityState: (id) =>
+	updateProductInState: (product) =>
 		set((state) => ({
-			products: state.products.map((p) =>
-				p.id === id ? { ...p, isAvailable: !p.isAvailable } : p,
+			products: state.products.map((currentProduct) =>
+				currentProduct.id === product.id ? product : currentProduct,
 			),
 		})),
 

@@ -193,8 +193,26 @@ export const productService = {
 		return productSchema.parse(product);
 	},
 
+	async updateProduct(productData: Product): Promise<Product> {
+		await new Promise((resolve) => setTimeout(resolve, 200));
+		const productIndex = MOCK_PRODUCTS.findIndex(
+			(product) => product.id === productData.id,
+		);
+
+		if (productIndex === -1) {
+			throw new Error("Produto não encontrado.");
+		}
+
+		const validatedProduct = productSchema.parse(productData);
+		MOCK_PRODUCTS[productIndex] = validatedProduct;
+		return validatedProduct;
+	},
+
 	async deleteProduct(id: string): Promise<void> {
 		await new Promise((resolve) => setTimeout(resolve, 150));
+		if (!MOCK_PRODUCTS.some((product) => product.id === id)) {
+			throw new Error("Produto não encontrado.");
+		}
 		MOCK_PRODUCTS = MOCK_PRODUCTS.filter((p) => p.id !== id);
 	},
 
