@@ -10,10 +10,11 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import type { Product } from "@/features/products/schemas/product-schema";
 import { formatPrice } from "@/utils/format-price";
+import { Categorie } from "@/features/categories/schemas/categorie-schema";
 
 interface AdminProductStatsProps {
 	products: Product[];
-	categories: string[];
+	categories: Categorie[];
 }
 
 export const AdminProductStats = ({
@@ -21,12 +22,17 @@ export const AdminProductStats = ({
 	categories,
 }: AdminProductStatsProps) => {
 	const totalProducts = products.length;
-	const activeProducts = products.filter((p) => p.isAvailable).length;
-	const inactiveProducts = products.filter((p) => !p.isAvailable).length;
-	const totalCategories = categories.filter((c) => c !== "Todos").length;
+	const activeProducts = products.filter((p) => p.available).length;
+	const inactiveProducts = products.filter((p) => !p.available).length;
+	const totalCategories = categories.length;
 	const averagePrice =
 		totalProducts > 0
-			? products.reduce((acc, p) => acc + p.price, 0) / totalProducts
+			? products.reduce((acc, p) => {
+					const num = Number.parseFloat(
+						p.price.replace(/\./g, "").replace(",", "."),
+					);
+					return acc + (Number.isNaN(num) ? 0 : num);
+				}, 0) / totalProducts
 			: 0;
 
 	const stats = [

@@ -58,12 +58,12 @@ export const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
 
 				<Button
 					size="sm"
-					disabled={!product.isAvailable}
+					disabled={!product.available}
 					onClick={() => onAddToCart?.(product)}
 					className="h-10 gap-1.5 rounded-lg px-4 font-bold shadow-xs transition-all hover:shadow-md"
 				>
 					<Plus className="h-4 w-4" />
-					<span>{product.isAvailable ? "Adicionar" : "Esgotado"}</span>
+					<span>{product.available ? "Adicionar" : "Esgotado"}</span>
 				</Button>
 			</CardFooter>
 		</Card>
