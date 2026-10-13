@@ -11,6 +11,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import type { Categorie } from "@/features/categories/schemas/categorie-schema";
 import {
 	AdminProductFilters,
 	AdminProductStats,
@@ -22,11 +23,12 @@ import type {
 	Product,
 	ProductCreateInput,
 } from "@/features/products/schemas/product-schema";
-import { MOCK_CATEGORIES, MOCK_PRODUCTS } from "@/mocks/products";
+import { createProduct } from "@/features/products/services/create-products";
+import { MOCK_PRODUCTS } from "@/mocks/products";
 
 interface AdminProductSectionProps {
 	initialProducts?: Product[];
-	initialCategories?: string[];
+	initialCategories?: Categorie[];
 }
 
 export const AdminProductSection = ({
@@ -36,19 +38,19 @@ export const AdminProductSection = ({
 	const [products, setProducts] = React.useState<Product[]>(
 		initialProducts ?? MOCK_PRODUCTS,
 	);
-	const [categories] = React.useState<string[]>(
-		initialCategories ?? ["Todos", ...MOCK_CATEGORIES.map((c) => c.name)],
-	);
+	const [categories] = React.useState<Categorie[]>(initialCategories ?? []);
 	const [searchQuery, setSearchQuery] = React.useState("");
 	const [selectedCategory, setSelectedCategory] = React.useState("Todos");
 	const [statusFilter, setStatusFilter] =
 		React.useState<ProductStatusFilter>("all");
 	const [isFormOpen, setIsFormOpen] = React.useState(false);
+	const [isSubmitting, setIsSubmitting] = React.useState(false);
+	const [submitError, setSubmitError] = React.useState<string | null>(null);
 
 	const [formData, setFormData] = React.useState<ProductCreateInput>({
 		name: "",
 		price: "",
-		categoryId: MOCK_CATEGORIES[0]?.id || "",
+		categoryId: categories[0]?.id || "",
 		imageUrl: "",
 		description: "",
 		available: true,
@@ -63,30 +65,42 @@ export const AdminProductSection = ({
 	);
 
 	const handleFormSubmit = React.useCallback(
-		(e: React.SubmitEvent<HTMLFormElement>) => {
+		async (e: React.SubmitEvent<HTMLFormElement>) => {
 			e.preventDefault();
-			const newProd: Product = {
-				id: `prod-${Date.now()}`,
-				name: formData.name,
-				description: formData.description || null,
-				price: formData.price,
-				imageUrl: formData.imageUrl || null,
-				available: formData.available,
-				ingredients: formData.ingredients || null,
-			};
-			setProducts((prev) => [newProd, ...prev]);
-			setIsFormOpen(false);
-			setFormData({
-				name: "",
-				price: "",
-				categoryId: MOCK_CATEGORIES[0]?.id || "",
-				imageUrl: "",
-				description: "",
-				available: true,
-				ingredients: "",
-			});
+			setIsSubmitting(true);
+			setSubmitError(null);
+
+			try {
+				await createProduct(formData);
+				const newProd: Product = {
+					id: `prod-${Date.now()}`,
+					name: formData.name,
+					description: formData.description || null,
+					price: formData.price,
+					imageUrl: formData.imageUrl || null,
+					available: formData.available,
+					ingredients: formData.ingredients || null,
+				};
+				setProducts((prev) => [newProd, ...prev]);
+				setIsFormOpen(false);
+				setFormData({
+					name: "",
+					price: "",
+					categoryId: categories[0]?.id || "",
+					imageUrl: "",
+					description: "",
+					available: true,
+					ingredients: "",
+				});
+			} catch (error) {
+				setSubmitError(
+					error instanceof Error ? error.message : "Falha ao criar produto",
+				);
+			} finally {
+				setIsSubmitting(false);
+			}
 		},
-		[formData],
+		[formData, categories],
 	);
 
 	const toggleAvailability = React.useCallback((id: string) => {
@@ -188,7 +202,9 @@ export const AdminProductSection = ({
 					<div className="mt-1">
 						<ProductCreateForm
 							formData={formData}
-							categories={MOCK_CATEGORIES}
+							categories={categories}
+							isSubmitting={isSubmitting}
+							errors={submitError ? { name: submitError } : {}}
 							onChange={handleFormChange}
 							onSubmit={handleFormSubmit}
 							onCancel={() => setIsFormOpen(false)}

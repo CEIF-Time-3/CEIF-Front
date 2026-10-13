@@ -5,6 +5,7 @@ import { FilterX, Search, SlidersHorizontal } from "lucide-react";
 import { SelectInput } from "@/components/inputs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Categorie } from "@/features/categories/schemas/categorie-schema";
 
 export type ProductStatusFilter = "all" | "available" | "unavailable";
 
@@ -12,7 +13,7 @@ interface AdminProductFiltersProps {
 	searchQuery: string;
 	selectedCategory: string;
 	statusFilter: ProductStatusFilter;
-	categories: string[];
+	categories: Categorie[];
 	onSearchChange: (query: string) => void;
 	onCategoryChange: (category: string) => void;
 	onStatusFilterChange: (status: ProductStatusFilter) => void;
@@ -40,6 +41,8 @@ export const AdminProductFilters = ({
 		{ label: "Apenas Indisponíveis", value: "unavailable" },
 	];
 
+	const categoriesOptions = categories.map((c) => ({ label: c.name, value: c.name }));
+
 	return (
 		<div className="flex flex-col gap-4 rounded-xl border border-border bg-card/70 p-4 shadow-xs backdrop-blur-xs w-full min-w-0">
 			<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between w-full min-w-0">
@@ -62,7 +65,7 @@ export const AdminProductFilters = ({
 							size="sm"
 							value={selectedCategory}
 							onValueChange={onCategoryChange}
-							options={categories}
+							options={categoriesOptions}
 							placeholder="Categoria"
 						/>
 					</div>
