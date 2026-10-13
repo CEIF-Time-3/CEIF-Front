@@ -10,6 +10,11 @@ export const productSchema = z.object({
   ingredients: z.string().nullable(),
 });
 
+export const productResponseSchema = z.object({
+  data: z.array(productSchema),
+  success: z.boolean(),
+});
+
 export const productCreateSchema = z.object({
   name: z
     .string()
@@ -36,5 +41,6 @@ export const productFilterSchema = z.object({
 });
 
 export type Product = z.infer<typeof productSchema>;
+export type ProductResponse = z.infer<typeof productResponseSchema>;
 export type ProductCreateInput = z.infer<typeof productCreateSchema>;
 export type ProductFilter = z.infer<typeof productFilterSchema>;
