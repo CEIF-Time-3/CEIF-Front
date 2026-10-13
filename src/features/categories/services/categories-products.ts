@@ -1,6 +1,7 @@
 import { Categorie } from "../schemas/categorie-schema";
 
-export async function categoriesProducts(): Promise<Categorie[]> {
+export class CategorieService {
+  async categoriesProducts(): Promise<Categorie[]> {
   try {
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/categories`
@@ -15,3 +16,6 @@ export async function categoriesProducts(): Promise<Categorie[]> {
     throw error;
   }
 }
+}
+
+export const categorieService = new CategorieService();

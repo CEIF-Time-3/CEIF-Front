@@ -23,7 +23,7 @@ import type {
 	Product,
 	ProductCreateInput,
 } from "@/features/products/schemas/product-schema";
-import { createProduct } from "@/features/products/services/create-products";
+import { productService } from "@/features/products/services/create-products";
 import { MOCK_PRODUCTS } from "@/mocks/products";
 
 interface AdminProductSectionProps {
@@ -71,7 +71,7 @@ export const AdminProductSection = ({
 			setSubmitError(null);
 
 			try {
-				await createProduct(formData);
+				await productService.create(formData);
 				const newProd: Product = {
 					id: `prod-${Date.now()}`,
 					name: formData.name,
