@@ -2,11 +2,22 @@
 
 import { CheckCircle2 } from "lucide-react";
 import React from "react";
+import {
+	type Control,
+	Controller,
+	type FieldValues,
+	type Path,
+} from "react-hook-form";
 
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
-export interface ProductAvailabilityToggleProps {
+export interface ProductAvailabilityToggleProps<
+	TFieldValues extends FieldValues = FieldValues,
+	TName extends Path<TFieldValues> = Path<TFieldValues>,
+> {
+	name?: TName | string;
+	control?: Control<TFieldValues>;
 	id?: string;
 	checked?: boolean;
 	onCheckedChange?: (checked: boolean) => void;
@@ -17,7 +28,7 @@ export interface ProductAvailabilityToggleProps {
 	inactiveDescription?: string;
 }
 
-export const ProductAvailabilityToggle = ({
+const BaseProductAvailabilityToggle = ({
 	id,
 	checked = true,
 	onCheckedChange,
@@ -65,4 +76,36 @@ export const ProductAvailabilityToggle = ({
 			/>
 		</label>
 	);
+};
+
+export const ProductAvailabilityToggle = <
+	TFieldValues extends FieldValues = FieldValues,
+	TName extends Path<TFieldValues> = Path<TFieldValues>,
+>({
+	control,
+	name,
+	checked = true,
+	...props
+}: ProductAvailabilityToggleProps<TFieldValues, TName>) => {
+	if (control && name) {
+		return (
+			<Controller
+				name={name as Path<TFieldValues>}
+				control={control}
+				render={({ field }) => (
+					<BaseProductAvailabilityToggle
+						{...props}
+						id={props.id}
+						checked={Boolean(field.value ?? checked)}
+						onCheckedChange={(val) => {
+							field.onChange(val);
+							props.onCheckedChange?.(val);
+						}}
+					/>
+				)}
+			/>
+		);
+	}
+
+	return <BaseProductAvailabilityToggle checked={checked} {...props} />;
 };

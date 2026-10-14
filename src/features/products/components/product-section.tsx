@@ -6,7 +6,7 @@ import React from "react";
 import { ProductCategoryFilter } from "@/features/products/components/product-category-filter";
 import { ProductList } from "@/features/products/components/product-list";
 import { ProductSearch } from "@/features/products/components/product-search";
-import type { Product } from "@/features/products/schemas/product-schema";
+import type { Product } from "@/features/products/schemas/products.schema";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS } from "@/mocks/products";
 
 interface ProductSectionProps {

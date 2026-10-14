@@ -5,7 +5,7 @@ import { FilterX, Search, SlidersHorizontal } from "lucide-react";
 import { SelectInput } from "@/components/inputs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { Categorie } from "@/features/categories/schemas/categorie-schema";
+import type { Category } from "@/features/categories/schemas/categories.schema";
 
 export type ProductStatusFilter = "all" | "available" | "unavailable";
 
@@ -13,7 +13,7 @@ interface AdminProductFiltersProps {
   searchQuery: string;
   selectedCategory: string;
   statusFilter: ProductStatusFilter;
-  categories: Categorie[];
+  categories: Category[];
   onSearchChange: (query: string) => void;
   onCategoryChange: (category: string) => void;
   onStatusFilterChange: (status: ProductStatusFilter) => void;

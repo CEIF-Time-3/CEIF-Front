@@ -1,6 +1,12 @@
 "use client";
 
 import React from "react";
+import {
+	type Control,
+	Controller,
+	type FieldValues,
+	type Path,
+} from "react-hook-form";
 
 import {
 	Field,
@@ -23,7 +29,12 @@ export interface SelectOption {
 	disabled?: boolean;
 }
 
-export interface SelectInputProps {
+export interface SelectInputProps<
+	TFieldValues extends FieldValues = FieldValues,
+	TName extends Path<TFieldValues> = Path<TFieldValues>,
+> {
+	name?: TName | string;
+	control?: Control<TFieldValues>;
 	value?: string;
 	defaultValue?: string;
 	onValueChange?: (value: string) => void;
@@ -45,7 +56,7 @@ export interface SelectInputProps {
 	align?: "start" | "center" | "end";
 }
 
-export const SelectInput = ({
+const BaseSelectInput = ({
 	value,
 	defaultValue,
 	onValueChange,
@@ -103,7 +114,7 @@ export const SelectInput = ({
 				value={value}
 				defaultValue={defaultValue}
 				onValueChange={(val) => {
-					if (val && onValueChange) {
+					if (val !== null && onValueChange) {
 						onValueChange(val);
 					}
 				}}
@@ -147,4 +158,36 @@ export const SelectInput = ({
 			)}
 		</Field>
 	);
+};
+
+export const SelectInput = <
+	TFieldValues extends FieldValues = FieldValues,
+	TName extends Path<TFieldValues> = Path<TFieldValues>,
+>({
+	control,
+	name,
+	...props
+}: SelectInputProps<TFieldValues, TName>) => {
+	if (control && name) {
+		return (
+			<Controller
+				name={name as Path<TFieldValues>}
+				control={control}
+				render={({ field, fieldState }) => (
+					<BaseSelectInput
+						{...props}
+						id={props.id}
+						value={field.value ?? ""}
+						onValueChange={(val) => {
+							field.onChange(val);
+							props.onValueChange?.(val);
+						}}
+						error={props.error ?? fieldState.error?.message}
+					/>
+				)}
+			/>
+		);
+	}
+
+	return <BaseSelectInput name={name} {...props} />;
 };
