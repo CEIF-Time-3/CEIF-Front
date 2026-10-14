@@ -1,34 +1,78 @@
-import type { Product, ProductCreateInput } from "@/schemas/product-schema";
+import type {
+	Product,
+	ProductCreateInput,
+	ProductUpdateInput,
+} from "@/features/products/schemas/products.schema";
+import { deleteProductResponseSchema } from "@/features/products/schemas/products.schema";
 import type { Result } from "@/types/result";
 import { getErrorMessage } from "@/utils/getErrorMessage";
 import { http } from "@/utils/http";
 import { productResponseSchema } from "../schemas/products.schema";
 
 export class ProductService {
-  async getAll(): Promise<Result<Product[], string>> {
-    try {
-      const data = await http<unknown>("/products");
+	async getAll(): Promise<Result<Product[], string>> {
+		try {
+			const data = await http<unknown>("/products");
+			const parsedData = productResponseSchema.parse(data);
 
-      const parsedData = productResponseSchema.parse(data);
+			return { success: true, data: parsedData.data };
+		} catch (error) {
+			return { success: false, error: getErrorMessage(error) };
+		}
+	}
 
-      return { success: true, data: parsedData.data };
-    } catch (error) {
-      return { success: false, error: getErrorMessage(error) };
-    }
-  }
+	async create(input: ProductCreateInput): Promise<Result<string, string>> {
+		try {
+			await http<unknown>("/products", {
+				method: "POST",
+				body: JSON.stringify(input),
+			});
 
-  async create(input: ProductCreateInput): Promise<Result<string, string>> {
-    try {
-      await http<unknown>("/products", {
-        method: "POST",
-        body: JSON.stringify(input),
-      });
+			return { success: true, data: "Produto criado com sucesso!" };
+		} catch (error) {
+			return { success: false, error: getErrorMessage(error) };
+		}
+	}
 
-      return { success: true, data: "Produto criado com sucesso!" };
-    } catch (error) {
-      return { success: false, error: getErrorMessage(error) };
-    }
-  }
+	async update(
+		id: string,
+		input: ProductUpdateInput,
+	): Promise<Result<string, string>> {
+		try {
+			await http<unknown>(`/products/${encodeURIComponent(id)}`, {
+				method: "PUT",
+				body: JSON.stringify(input),
+			});
+
+			return { success: true, data: "Produto atualizado com sucesso." };
+		} catch (error) {
+			return { success: false, error: getErrorMessage(error) };
+		}
+	}
+
+	async deleteProduct(id: string): Promise<Result<string, string>> {
+		try {
+			const response = await http<unknown>(
+				`/products/${encodeURIComponent(id)}`,
+				{ method: "DELETE" },
+			);
+			const parsedResponse = deleteProductResponseSchema.parse(response);
+
+			if (!parsedResponse.success) {
+				return {
+					success: false,
+					error:
+						parsedResponse.message ??
+						parsedResponse.error ??
+						"Falha ao excluir produto.",
+				};
+			}
+
+			return { success: true, data: parsedResponse.data };
+		} catch (error) {
+			return { success: false, error: getErrorMessage(error) };
+		}
+	}
 }
 
 export const productService = new ProductService();
