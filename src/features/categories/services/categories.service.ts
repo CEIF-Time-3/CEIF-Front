@@ -16,10 +16,6 @@ export class CategorieService {
 			return { success: false, error: getErrorMessage(error) };
 		}
 	}
-
-	async categoriesProducts(): Promise<Result<Categorie[], string>> {
-		return this.getAll();
-	}
 }
 
 export const categorieService = new CategorieService();

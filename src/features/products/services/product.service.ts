@@ -1,25 +1,13 @@
-import { z } from "zod";
-
 import type {
 	Product,
 	ProductCreateInput,
+	ProductUpdateInput,
 } from "@/features/products/schemas/products.schema";
+import { deleteProductResponseSchema } from "@/features/products/schemas/products.schema";
 import type { Result } from "@/types/result";
 import { getErrorMessage } from "@/utils/getErrorMessage";
 import { http } from "@/utils/http";
 import { productResponseSchema } from "../schemas/products.schema";
-
-const deleteProductResponseSchema = z.discriminatedUnion("success", [
-	z.object({
-		success: z.literal(true),
-		data: z.string(),
-	}),
-	z.object({
-		success: z.literal(false),
-		message: z.string().optional(),
-		error: z.string().optional(),
-	}),
-]);
 
 export class ProductService {
 	async getAll(): Promise<Result<Product[], string>> {
@@ -41,6 +29,22 @@ export class ProductService {
 			});
 
 			return { success: true, data: "Produto criado com sucesso!" };
+		} catch (error) {
+			return { success: false, error: getErrorMessage(error) };
+		}
+	}
+
+	async update(
+		id: string,
+		input: ProductUpdateInput,
+	): Promise<Result<string, string>> {
+		try {
+			await http<unknown>(`/products/${encodeURIComponent(id)}`, {
+				method: "PUT",
+				body: JSON.stringify(input),
+			});
+
+			return { success: true, data: "Produto atualizado com sucesso." };
 		} catch (error) {
 			return { success: false, error: getErrorMessage(error) };
 		}

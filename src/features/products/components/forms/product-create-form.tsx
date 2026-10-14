@@ -34,14 +34,11 @@ type ProductCreateFormValues = z.input<typeof productCreateSchema>;
 
 export interface ProductCreateFormProps {
 	categories?: Categorie[];
-	onCreated?: () => void | Promise<void>;
 }
 
-export const ProductCreateForm = ({
-	categories,
-	onCreated,
-}: ProductCreateFormProps) => {
+export const ProductCreateForm = ({ categories }: ProductCreateFormProps) => {
 	const create = useProductStore((state) => state.create);
+	const getAll = useProductStore((state) => state.getAll);
 	const [open, setOpen] = React.useState(false);
 
 	const resolvedCategoryOptions = React.useMemo(() => {
@@ -97,9 +94,9 @@ export const ProductCreateForm = ({
 			return;
 		}
 
+		await getAll();
 		reset();
 		setOpen(false);
-		await onCreated?.();
 	};
 
 	return (
@@ -135,7 +132,6 @@ export const ProductCreateForm = ({
 						)}
 
 						<div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-							{/* Nome do Produto */}
 							<FieldInput
 								id="name"
 								name="name"
@@ -152,7 +148,6 @@ export const ProductCreateForm = ({
 								containerClassName="sm:col-span-2"
 							/>
 
-							{/* Preço */}
 							<FieldInput
 								id="price"
 								name="price"
@@ -169,7 +164,6 @@ export const ProductCreateForm = ({
 								}
 							/>
 
-							{/* Categoria */}
 							<SelectInput
 								name="categoryId"
 								id="categoryId"
@@ -181,7 +175,6 @@ export const ProductCreateForm = ({
 								triggerClassName="h-8.5 text-xs"
 							/>
 
-							{/* URL da Imagem & Preview */}
 							<ImageInput
 								id="imageUrl"
 								name="imageUrl"
@@ -190,7 +183,6 @@ export const ProductCreateForm = ({
 								containerClassName="sm:col-span-2"
 							/>
 
-							{/* Descrição */}
 							<FieldTextarea
 								id="description"
 								name="description"
@@ -208,7 +200,6 @@ export const ProductCreateForm = ({
 								containerClassName="sm:col-span-2"
 							/>
 
-							{/* Ingredientes */}
 							<FieldInput
 								id="ingredients"
 								name="ingredients"
@@ -223,7 +214,6 @@ export const ProductCreateForm = ({
 								containerClassName="sm:col-span-2"
 							/>
 
-							{/* Availability toggle card */}
 							<ProductAvailabilityToggle
 								id="available"
 								name="available"
@@ -233,7 +223,6 @@ export const ProductCreateForm = ({
 							/>
 						</div>
 
-						{/* Form Actions Footer */}
 						<div className="border-border/60 flex items-center justify-end gap-2 border-t pt-3">
 							<Button
 								type="button"

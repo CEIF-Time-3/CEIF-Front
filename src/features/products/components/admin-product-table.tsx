@@ -1,13 +1,16 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit, Eye, EyeOff, Trash2 } from "lucide-react";
 import Image from "next/image";
 import React from "react";
 
 import { DataTable } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {
+	ProductAvailabilityDialog,
+	ProductDeleteDialog,
+	ProductEditForm,
+} from "@/features/products/components/forms";
 import type { Product } from "@/features/products/schemas/products.schema";
 import { formatPrice } from "@/utils/format-price";
 
@@ -15,9 +18,6 @@ interface AdminProductTableProps {
 	products: Product[];
 	isLoading?: boolean;
 	itemsPerPage?: number;
-	onToggleAvailability: (product: Product) => void;
-	onDeleteProduct: (product: Product) => void;
-	onEditProduct?: (product: Product) => void;
 	onResetFilters?: () => void;
 }
 
@@ -25,9 +25,6 @@ export const AdminProductTable = ({
 	products,
 	isLoading = false,
 	itemsPerPage = 5,
-	onToggleAvailability,
-	onDeleteProduct,
-	onEditProduct,
 	onResetFilters,
 }: AdminProductTableProps) => {
 	const columns = React.useMemo<ColumnDef<Product>[]>(
@@ -104,51 +101,15 @@ export const AdminProductTable = ({
 					const product = row.original;
 					return (
 						<div className="flex items-center justify-end gap-1.5">
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={() => onToggleAvailability(product)}
-								title={
-									product.available
-										? "Marcar como indisponível"
-										: "Marcar como disponível"
-								}
-								className="text-muted-foreground hover:text-foreground size-8"
-							>
-								{product.available ? (
-									<Eye className="size-4 text-emerald-600 dark:text-emerald-400" />
-								) : (
-									<EyeOff className="size-4 text-rose-500" />
-								)}
-							</Button>
-
-							{onEditProduct && (
-								<Button
-									variant="ghost"
-									size="icon"
-									onClick={() => onEditProduct(product)}
-									title="Editar produto"
-									className="text-muted-foreground hover:text-foreground size-8"
-								>
-									<Edit className="size-4" />
-								</Button>
-							)}
-
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={() => onDeleteProduct(product)}
-								title="Excluir produto"
-								className="text-muted-foreground hover:text-destructive size-8"
-							>
-								<Trash2 className="size-4" />
-							</Button>
+							<ProductAvailabilityDialog product={product} />
+							<ProductEditForm product={product} />
+							<ProductDeleteDialog product={product} />
 						</div>
 					);
 				},
 			},
 		],
-		[onToggleAvailability, onDeleteProduct, onEditProduct],
+		[],
 	);
 
 	return (
