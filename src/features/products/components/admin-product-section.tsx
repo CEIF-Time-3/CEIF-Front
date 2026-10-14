@@ -1,6 +1,6 @@
 "use client";
 
-import { Package, Plus } from "lucide-react";
+import { Package } from "lucide-react";
 import React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import type { Categorie } from "@/features/categories/schemas/categorie-schema";
+import type { Categorie } from "@/features/categories/schemas/categories.schema";
 import {
 	AdminProductFilters,
 	AdminProductStats,
@@ -20,15 +20,8 @@ import {
 	ProductCreateForm,
 	type ProductStatusFilter,
 } from "@/features/products/components";
-import type {
-	Product,
-	ProductCreateInput,
-} from "@/features/products/schemas/product-schema";
-import {
-	productCreateSchema,
-	productSchema,
-} from "@/features/products/schemas/product-schema";
-import { productService as createProductService } from "@/features/products/services/create-products";
+import type { Product } from "@/features/products/schemas/products.schema";
+import { productSchema } from "@/features/products/schemas/products.schema";
 import { productService } from "@/features/products/services/product.service";
 
 interface AdminProductSectionProps {
@@ -37,16 +30,6 @@ interface AdminProductSectionProps {
 }
 
 type ConfirmationAction = "delete" | "availability";
-
-const getEmptyProductForm = (categoryId = ""): ProductCreateInput => ({
-	name: "",
-	price: "",
-	categoryId,
-	imageUrl: "",
-	description: "",
-	available: true,
-	ingredients: "",
-});
 
 export const AdminProductSection = ({
 	initialProducts,
@@ -60,11 +43,6 @@ export const AdminProductSection = ({
 	const [selectedCategory, setSelectedCategory] = React.useState("Todos");
 	const [statusFilter, setStatusFilter] =
 		React.useState<ProductStatusFilter>("all");
-	const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
-	const [formData, setFormData] = React.useState<ProductCreateInput>(() =>
-		getEmptyProductForm(categories[0]?.id),
-	);
-	const [formError, setFormError] = React.useState<string | null>(null);
 	const [pageError, setPageError] = React.useState<string | null>(null);
 	const [editingProduct, setEditingProduct] = React.useState<Product | null>(
 		null,
@@ -76,13 +54,6 @@ export const AdminProductSection = ({
 	} | null>(null);
 	const [actionError, setActionError] = React.useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = React.useState(false);
-
-	const handleFormChange = React.useCallback(
-		(field: keyof ProductCreateInput, value: string | boolean) => {
-			setFormData((previous) => ({ ...previous, [field]: value }));
-		},
-		[],
-	);
 
 	const filteredProducts = React.useMemo(() => {
 		const query = searchQuery.trim().toLowerCase();
@@ -101,39 +72,17 @@ export const AdminProductSection = ({
 		});
 	}, [products, searchQuery, statusFilter]);
 
-	const handleFormSubmit = async (
-		event: React.SubmitEvent<HTMLFormElement>,
-	) => {
-		event.preventDefault();
-		const validation = productCreateSchema.safeParse(formData);
-		if (!validation.success) {
-			setFormError(validation.error.issues[0]?.message ?? "Dados inválidos.");
+	const refreshProducts = React.useCallback(async () => {
+		const result = await productService.getAll();
+		if (!result.success) {
+			setPageError(
+				`Produto criado, mas a listagem não pôde ser atualizada: ${result.error}`,
+			);
 			return;
 		}
 
-		setIsSubmitting(true);
-		setFormError(null);
-		setPageError(null);
-		try {
-			await createProductService.create(validation.data);
-			const result = await productService.getAll();
-			if (!result.success) {
-				setPageError(
-					`Produto criado, mas a listagem não pôde ser atualizada: ${result.error}`,
-				);
-			} else {
-				setProducts(result.data);
-			}
-			setIsCreateDialogOpen(false);
-			setFormData(getEmptyProductForm(categories[0]?.id));
-		} catch (error) {
-			setFormError(
-				error instanceof Error ? error.message : "Falha ao criar produto.",
-			);
-		} finally {
-			setIsSubmitting(false);
-		}
-	};
+		setProducts(result.data);
+	}, []);
 
 	const handleDeleteProduct = async () => {
 		if (confirmation?.action !== "delete") return;
@@ -202,16 +151,10 @@ export const AdminProductSection = ({
 					</p>
 				</div>
 
-				<Button
-					onClick={() => {
-						setFormError(null);
-						setIsCreateDialogOpen(true);
-					}}
-					className="h-9 gap-1.5 self-start sm:self-auto"
-				>
-					<Plus className="size-4" />
-					Novo Produto
-				</Button>
+				<ProductCreateForm
+					categories={categories}
+					onCreated={refreshProducts}
+				/>
 			</div>
 
 			{pageError && (
@@ -253,44 +196,6 @@ export const AdminProductSection = ({
 					setStatusFilter("all");
 				}}
 			/>
-
-			<Dialog
-				open={isCreateDialogOpen}
-				onOpenChange={(open) => {
-					if (!isSubmitting) setIsCreateDialogOpen(open);
-				}}
-			>
-				<DialogContent
-					className="w-full max-w-2xl p-6 sm:max-w-2xl"
-					showCloseButton={!isSubmitting}
-				>
-					<DialogHeader className="pb-1">
-						<DialogTitle className="text-lg font-bold">
-							Cadastrar Novo Produto
-						</DialogTitle>
-						<DialogDescription className="text-xs">
-							Preencha as informações abaixo para adicionar um novo produto ao
-							cardápio.
-						</DialogDescription>
-					</DialogHeader>
-					<ProductCreateForm
-						formData={formData}
-						categories={categories.map((category) => ({
-							id: category.id,
-							name: category.name,
-						}))}
-						onChange={handleFormChange}
-						onSubmit={handleFormSubmit}
-						onCancel={() => setIsCreateDialogOpen(false)}
-						isSubmitting={isSubmitting}
-					/>
-					{formError && (
-						<p role="alert" className="text-destructive text-sm">
-							{formError}
-						</p>
-					)}
-				</DialogContent>
-			</Dialog>
 
 			<Dialog
 				open={editingProduct !== null}

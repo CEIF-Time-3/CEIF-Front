@@ -8,7 +8,7 @@ import React from "react";
 import { DataTable } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { Product } from "@/features/products/schemas/product-schema";
+import type { Product } from "@/features/products/schemas/products.schema";
 import { formatPrice } from "@/utils/format-price";
 
 interface AdminProductTableProps {
@@ -72,7 +72,7 @@ export const AdminProductTable = ({
 				accessorKey: "price",
 				header: "Preço",
 				cell: ({ row }) => (
-					<span className="font-semibold text-foreground text-sm">
+					<span className="text-foreground text-sm font-semibold">
 						{formatPrice(row.original.price)}
 					</span>
 				),
