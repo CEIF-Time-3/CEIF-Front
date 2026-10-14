@@ -1,17 +1,8 @@
 "use client";
 
-import { Package, Plus } from "lucide-react";
+import { Package } from "lucide-react";
 import React from "react";
-
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import type { Categorie } from "@/features/categories/schemas/categorie-schema";
+import type { Categorie } from "@/features/categories/schemas/categories.schema";
 import {
   AdminProductFilters,
   AdminProductStats,
@@ -19,99 +10,23 @@ import {
   ProductCreateForm,
   type ProductStatusFilter,
 } from "@/features/products/components";
-import type {
-  Product,
-  ProductCreateInput,
-} from "@/features/products/schemas/product-schema";
-import { productService } from "@/features/products/services/create-products";
-import { MOCK_PRODUCTS } from "@/mocks/products";
+import type { Product } from "@/features/products/schemas/products.schema";
 
 interface AdminProductSectionProps {
-  initialProducts?: Product[];
-  initialCategories?: Categorie[];
+  initialProducts: Product[];
+  initialCategories: Categorie[];
 }
 
 export const AdminProductSection = ({
   initialProducts,
   initialCategories,
 }: AdminProductSectionProps) => {
-  const [products, setProducts] = React.useState<Product[]>(
-    initialProducts ?? MOCK_PRODUCTS
-  );
-  const [categories] = React.useState<Categorie[]>(initialCategories ?? []);
+  const [products] = React.useState<Product[]>(initialProducts);
+
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState("Todos");
   const [statusFilter, setStatusFilter] =
     React.useState<ProductStatusFilter>("all");
-  const [isFormOpen, setIsFormOpen] = React.useState(false);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [submitError, setSubmitError] = React.useState<string | null>(null);
-
-  const [formData, setFormData] = React.useState<ProductCreateInput>({
-    name: "",
-    price: "",
-    categoryId: categories[0]?.id || "",
-    imageUrl: "",
-    description: "",
-    available: true,
-    ingredients: "",
-  });
-
-  const handleFormChange = React.useCallback(
-    (field: keyof ProductCreateInput, value: string | boolean) => {
-      setFormData((prev) => ({ ...prev, [field]: value }));
-    },
-    []
-  );
-
-  const handleFormSubmit = React.useCallback(
-    async (e: React.SubmitEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      setIsSubmitting(true);
-      setSubmitError(null);
-
-      try {
-        await productService.create(formData);
-        const newProd: Product = {
-          id: `prod-${Date.now()}`,
-          name: formData.name,
-          description: formData.description || null,
-          price: formData.price,
-          imageUrl: formData.imageUrl || null,
-          available: formData.available,
-          ingredients: formData.ingredients || null,
-        };
-        setProducts((prev) => [newProd, ...prev]);
-        setIsFormOpen(false);
-        setFormData({
-          name: "",
-          price: "",
-          categoryId: categories[0]?.id || "",
-          imageUrl: "",
-          description: "",
-          available: true,
-          ingredients: "",
-        });
-      } catch (error) {
-        setSubmitError(
-          error instanceof Error ? error.message : "Falha ao criar produto"
-        );
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [formData, categories]
-  );
-
-  const toggleAvailability = React.useCallback((id: string) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, available: !p.available } : p))
-    );
-  }, []);
-
-  const deleteProduct = React.useCallback((id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-  }, []);
 
   const resetFilters = React.useCallback(() => {
     setSearchQuery("");
@@ -158,22 +73,16 @@ export const AdminProductSection = ({
           </p>
         </div>
 
-        <Button
-          onClick={() => setIsFormOpen(true)}
-          className="h-9 gap-1.5 self-start sm:self-auto"
-        >
-          <Plus className="size-4" />
-          Novo Produto
-        </Button>
+        <ProductCreateForm categories={initialCategories} />
       </div>
 
-      <AdminProductStats products={products} categories={categories} />
+      <AdminProductStats products={products} categories={initialCategories} />
 
       <AdminProductFilters
         searchQuery={searchQuery}
         selectedCategory={selectedCategory}
         statusFilter={statusFilter}
-        categories={categories}
+        categories={initialCategories}
         onSearchChange={setSearchQuery}
         onCategoryChange={setSelectedCategory}
         onStatusFilterChange={setStatusFilter}
@@ -183,35 +92,8 @@ export const AdminProductSection = ({
       <AdminProductTable
         products={filteredProducts}
         isLoading={false}
-        onToggleAvailability={toggleAvailability}
-        onDeleteProduct={deleteProduct}
         onResetFilters={resetFilters}
       />
-
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="w-full max-w-2xl p-6 sm:max-w-2xl">
-          <DialogHeader className="pb-1">
-            <DialogTitle className="text-lg font-bold">
-              Cadastrar Novo Produto
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Preencha as informações abaixo para adicionar um novo produto ao
-              cardápio.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-1">
-            <ProductCreateForm
-              formData={formData}
-              categories={categories}
-              isSubmitting={isSubmitting}
-              errors={submitError ? { name: submitError } : {}}
-              onChange={handleFormChange}
-              onSubmit={handleFormSubmit}
-              onCancel={() => setIsFormOpen(false)}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
