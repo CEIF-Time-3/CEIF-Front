@@ -270,3 +270,71 @@
 
 - **Linter & Code Quality**: Checked and formatted strictly with `@biomejs/biome` (`npx biome check src`).
 - **Build Verification**: Tested and verified production build successfully via `npm run build`.
+
+---
+
+# Implementation History: Client Cart Screen & Order Checkout
+
+> **Associated Issue**: Create Cart Screen  
+> **Status**: Completed  
+> **Target Branch / Scope**: Client Cart Screen (`feat/create-order-screen`)
+
+---
+
+## Issue Execution Breakdown
+
+### 1. Cart Schemas & Validation (`src/features/cart/schemas/cart.schema.ts`)
+
+- **Cart Item Schema (`cartItemSchema`)**: Defined schema for cart items validating ID, product ID, name, price, numerical unit price, image URL, quantity, and item-level notes/observations.
+- **Checkout Schema (`checkoutSchema`)**: Defined form validation using Zod for customer information (name, phone), delivery method (delivery or takeaway), address fields conditional on delivery selection, payment methods (PIX, card, cash), cash change requirements, and order notes.
+
+---
+
+### 2. State Management & Persistence (`src/features/cart/stores/cart.store.ts`)
+
+- **Zustand Cart Store**: Built `useCartStore` utilizing Zustand's `persist` middleware with localStorage (`ceif-cart-storage`) to maintain cart state across page reloads and client navigation.
+- **Cart Actions**: Implemented `addItem`, `removeItem`, `updateQuantity` (with removal on zero), `updateObservation`, and `clearCart`.
+
+---
+
+### 3. Pure Async Service Layer (`src/features/cart/services/cart.service.ts`, `src/services/cart.service.ts`)
+
+- **Cart Service**: Implemented pure asynchronous `createOrder` method adhering strictly to Rule 1 and Rule 2 of `AGENTS.md`, wrapping API requests and returning typed `Result<TData, TError>`.
+
+---
+
+### 4. Custom Hook & UI Orchestration (`src/features/cart/hooks/use-cart.ts`, `src/hooks/use-cart.ts`)
+
+- **`useCart` Hook**: Created custom orchestration hook providing hydration safety for SSR, item count, subtotal, dynamic free shipping calculation (`FREE_DELIVERY_THRESHOLD`), delivery method toggles, coupon handling (`PASTEL10`, `BEMVINDO`), and order checkout triggers.
+
+---
+
+### 5. Presentation Components (`src/features/cart/components/*`)
+
+- **`CartItemCard` (`cart-item-card.tsx`)**: Product thumbnail, name, unit price, quantity increment/decrement stepper, item subtotal, remove action, and expandable inline observation notes.
+- **`CartItemList` (`cart-item-list.tsx`)**: List of cart item cards, free shipping visual progress bar, and "Esvaziar carrinho" confirmation dialog.
+- **`CartSummary` (`cart-summary.tsx`)**: Order summary card displaying delivery type selector, price breakdown, coupon code form with instant validation, bold total highlight, checkout trigger, and trust badges.
+- **`CartEmpty` (`cart-empty.tsx`)**: Illustrated empty state with call-to-action button redirecting to the menu.
+- **`CartCheckoutDialog` (`cart-checkout-dialog.tsx`)**: Modal checkout dialog with contact details, conditional address inputs, payment method selector (PIX, Card, Cash), and celebration confirmation state.
+- **`CartSection` (`cart-section.tsx`)**: Client section coordinating responsive 2-column layout (items on left, summary on right) and skeleton loading states.
+
+---
+
+### 6. Client Header & Product Card Integration
+
+- **`ClientHeader` (`src/components/client-header.tsx`)**: Added dynamic item counter badge to the shopping bag icon.
+- **`ProductSection` (`src/features/products/components/product-section.tsx`)**: Wired "Adicionar" buttons to `useCart().addItem` and added an auto-dismissing toast notification on item addition.
+
+---
+
+### 7. Route Definition (`src/app/(client)/carrinho/page.tsx`)
+
+- **App Router Route**: Created `/carrinho` page using named function syntax (`export default function CartPage()`) under the `(client)` route group.
+
+---
+
+## Verification & Tooling
+
+- **Linter & Code Quality**: Validated with `@biomejs/biome` (`npm run lint`), passing with 0 errors across 86 files.
+- **Build Verification**: Tested production build with Turbopack (`npm run build`), successfully generating static page `/carrinho`.
+
