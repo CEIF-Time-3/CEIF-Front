@@ -2,7 +2,11 @@ export const formatPrice = (price: number | string): string => {
 	const numericPrice =
 		typeof price === "number"
 			? price
-			: Number.parseFloat(price.replace(/\./g, "").replace(",", "."));
+			: Number.parseFloat(
+					price.includes(",")
+						? price.replace(/\./g, "").replace(",", ".")
+						: price,
+				);
 
 	return new Intl.NumberFormat("pt-BR", {
 		style: "currency",
