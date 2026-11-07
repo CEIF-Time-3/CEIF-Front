@@ -1,11 +1,12 @@
 "use client";
 
-import { ShoppingBag } from "lucide-react";
+import { LayoutDashboard, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { PastelIcon } from "@/components/icons/logo-icon";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/features/cart/hooks/use-cart";
+import { getMockUserRoleLabel, mockUser } from "@/mocks/user";
 
 export const ClientHeader = () => {
 	const { totalItems, isHydrated } = useCart();
@@ -27,6 +28,18 @@ export const ClientHeader = () => {
 				</div>
 
 				<div className="flex items-center gap-4">
+					<Badge variant="secondary">
+						{getMockUserRoleLabel(mockUser.role)}
+					</Badge>
+					{mockUser.role === "admin" && (
+						<Link
+							className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm font-medium transition-colors"
+							href="/admin"
+						>
+							<LayoutDashboard className="size-4" />
+							<span className="hidden sm:inline">Painel admin</span>
+						</Link>
+					)}
 					<Link
 						href="/carrinho"
 						className="text-muted-foreground hover:text-foreground relative flex items-center gap-2 text-sm font-medium transition-colors"

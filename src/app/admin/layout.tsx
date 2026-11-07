@@ -1,13 +1,19 @@
+import { redirect } from "next/navigation";
 import type React from "react";
 import { AdminHeader } from "@/components/admin-header";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { mockUser } from "@/mocks/user";
 
 export default function AdminLayout({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
+	if (mockUser.role !== "admin") {
+		redirect("/");
+	}
+
 	return (
 		<SidebarProvider>
 			<AdminSidebar />

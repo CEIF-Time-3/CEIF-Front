@@ -38,6 +38,15 @@ export default async function ClientHomePage() {
                 nativeButton={false}
                 size="lg"
                 className="h-12 gap-2 px-8 text-base font-bold shadow-md"
+                render={<Link href="/cadastro" />}
+              >
+                Cadastre-se
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+              <Button
+                nativeButton={false}
+                size="lg"
+                className="h-12 gap-2 px-8 text-base font-bold shadow-md"
                 render={<Link href="#cardapio" />}
               >
                 Ver Cardápio

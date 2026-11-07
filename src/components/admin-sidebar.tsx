@@ -1,7 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { FileText, Home, Users } from "lucide-react";
+import { FileText, Home, Package, UserRoundPlus } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AdminUserInfo, type UserInfo } from "@/components/admin-user-info";
@@ -18,6 +18,7 @@ import {
 	SidebarMenuItem,
 	SidebarRail,
 } from "@/components/ui/sidebar";
+import { getMockUserRoleLabel, mockUser } from "@/mocks/user";
 
 export type { UserInfo };
 export { AdminUserInfo };
@@ -34,12 +35,8 @@ export interface AdminSidebarProps {
 }
 
 const defaultUser: UserInfo = {
-	name: "Eduardo Silva",
-	email: "eduardo@ceif.com.br",
-	role: "Administrador",
-	avatar:
-		"https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-	initials: "ES",
+	...mockUser,
+	role: getMockUserRoleLabel(mockUser.role),
 };
 
 const defaultNavigationItems: NavItem[] = [
@@ -54,9 +51,14 @@ const defaultNavigationItems: NavItem[] = [
 		icon: FileText,
 	},
 	{
+		title: "Usuários",
+		url: "/admin/usuarios/novo",
+		icon: UserRoundPlus,
+	},
+	{
 		title: "Produtos",
 		url: "/admin/produtos",
-		icon: Users,
+		icon: Package,
 	},
 ];
 
