@@ -1,4 +1,11 @@
-import { Check, MessageSquare, Minus, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+	Check,
+	MessageSquare,
+	Minus,
+	Pencil,
+	Plus,
+	Trash2,
+} from "lucide-react";
 import Image from "next/image";
 import React from "react";
 import { Button } from "@/components/ui/button";
@@ -32,7 +39,10 @@ export const CartItemCard = ({
 	}, [item.unitPrice, item.quantity]);
 
 	return (
-		<div className="border-border/80 bg-card hover:border-primary/40 relative flex flex-col gap-4 rounded-xl border p-4 shadow-2xs transition-all duration-200 sm:p-5">
+		<article
+			aria-label={item.name}
+			className="border-border/80 bg-card hover:border-primary/40 relative flex flex-col gap-4 rounded-xl border p-4 shadow-2xs transition-all duration-200 sm:p-5"
+		>
 			<div className="flex items-start gap-4">
 				{/* Thumbnail */}
 				<div className="bg-muted relative h-20 w-20 shrink-0 overflow-hidden rounded-lg sm:h-24 sm:w-24">
@@ -190,6 +200,6 @@ export const CartItemCard = ({
 					</span>
 				</div>
 			</div>
-		</div>
+		</article>
 	);
 };

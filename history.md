@@ -338,3 +338,70 @@
 - **Linter & Code Quality**: Validated with `@biomejs/biome` (`npm run lint`), passing with 0 errors across 86 files.
 - **Build Verification**: Tested production build with Turbopack (`npm run build`), successfully generating static page `/carrinho`.
 
+
+---
+
+# Testing Setup: Vitest + React Testing Library
+
+### 1. Dependencies (devDependencies)
+
+- `vitest`, `vite`, `@vitejs/plugin-react`, `jsdom`, `@vitest/coverage-v8`
+- `@testing-library/react`, `@testing-library/dom`, `@testing-library/jest-dom`, `@testing-library/user-event`
+- Installed with `--legacy-peer-deps` due to an optional `@babel/core@8` peer conflict from `@vitejs/plugin-react` (`vite` installed explicitly for that reason).
+
+### 2. Configuration
+
+- **`vitest.config.mts`**: `jsdom` environment, `globals: true`, native `resolve.tsconfigPaths` (supports `@/*` alias), setup file and tests restricted to `src/test/**/*.{test,spec}.{ts,tsx}`.
+- **`src/test/setup.ts`**: Registers `jest-dom` matchers and runs `cleanup()` after each test.
+- **`package.json` scripts**: `test` (watch), `test:run` (single run), `test:coverage` (v8 coverage).
+
+### 3. Tests (all tests live in `src/test/`, mirroring `src/` structure)
+
+- **`src/test/utils/format-price.test.ts`**: Unit tests for `formatPrice` (number, pt-BR string, invalid input).
+- **`src/test/example.test.tsx`**: RTL + `user-event` sample validating render and interaction.
+
+### Verification
+
+- `npm run test:run`: 2 files, 4 tests passing.
+
+---
+
+# Testing Setup: Playwright (E2E)
+
+### 1. Dependencies
+
+- `@playwright/test` (devDependency, installed with `--legacy-peer-deps`). Browsers installed via `npx playwright install --with-deps chromium`.
+
+### 2. Configuration
+
+- **`playwright.config.ts`**: `testDir: ./src/test/e2e`, `baseURL` `http://localhost:3001`, projects `chromium` (Desktop Chrome) and `mobile` (Pixel 7), HTML reporter, trace on first retry, CI-aware retries/workers.
+- **`webServer`**: Auto-starts `npm run dev` (port 3001), reusing an existing server locally.
+- **`vitest.config.mts`**: Excludes `src/test/e2e/**` so Vitest does not pick up Playwright specs.
+- **`.gitignore`**: Ignores `test-results/`, `playwright-report/`, `blob-report/`, `playwright/.cache/`.
+- **`package.json` scripts**: `test:e2e`, `test:e2e:ui`, `test:e2e:report`.
+
+### 3. Tests
+
+- **`src/test/e2e/navigation.spec.ts`**: Smoke tests for home page hero (`h1`) and `/carrinho` route.
+
+---
+
+# Testing: Component / Integration Tests
+
+### 1. Cart Integration Test (`src/test/features/cart/cart-item-list.test.tsx`)
+
+- **Scope**: Renders a harness that wires the real `useCart` hook and the real `zustand` cart store into the presentational `CartItemList` (same wiring as `CartSection`), with no mocks.
+- **Scenarios**:
+  - Renders store items, total item count, remaining amount for free delivery and progress percentage.
+  - Increasing quantity updates both the store and the UI totals.
+  - Removing an item updates the list and the store.
+  - "Esvaziar carrinho" confirmation dialog clears the cart.
+- **Isolation**: `localStorage` and store state are reset in `beforeEach`.
+
+### 2. Accessibility Improvement (`src/features/cart/components/cart-item-card.tsx`)
+
+- Card root changed from `div` to `<article aria-label={item.name}>`, enabling semantic queries (`getByRole("article", { name })`).
+
+### Verification
+
+- `npm run test:run`: 3 files, 8 tests passing.

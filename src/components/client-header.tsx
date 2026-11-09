@@ -42,6 +42,7 @@ export const ClientHeader = () => {
 					)}
 					<Link
 						href="/carrinho"
+						aria-label="Carrinho"
 						className="text-muted-foreground hover:text-foreground relative flex items-center gap-2 text-sm font-medium transition-colors"
 					>
 						<div className="relative flex items-center justify-center">
