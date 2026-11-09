@@ -7,7 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "biome lint src --write",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -30,15 +36,25 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
+    "@playwright/test": "^1.65.0",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.3.0",
+    "@vitest/coverage-v8": "^5.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
+    "jsdom": "^31.0.0",
     "prettier": "^3.9.8",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^8.3.7",
+    "vitest": "^5.1.0"
   }
 }
