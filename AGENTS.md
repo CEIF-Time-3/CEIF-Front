@@ -12,6 +12,7 @@ Whenever generating code for this repository, strictly obey the following archit
 8. **Component Syntax:** Always use arrow functions (`const Component = () => ...`) for defining React components (`src/components`). Next.js pages and layouts (`src/app`) should use named functions (`export default function PageOrLayout() { ... }`).
 9. **React Imports & Namespacing:** Always use `import React from "react";` (or `import type React from "react";` for type-only references) when importing React, and explicitly prefix React hooks and functions with `React.` (e.g., `React.useState`, `React.useEffect`, `React.useCallback`, `React.useMemo`). Avoid `import * as React`.
 10. **Form Events:** Always use `React.SubmitEvent` (or `SubmitEvent`) instead of `React.FormEvent` / `FormEvent` when typing form submissions.
+11. **history changes:** Always write the changes in the `history.md` file, including the date and a brief description of the change. This is important for tracking changes and understanding the evolution of the codebase.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
