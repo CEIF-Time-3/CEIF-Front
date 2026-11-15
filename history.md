@@ -405,3 +405,75 @@
 ### Verification
 
 - `npm run test:run`: 3 files, 8 tests passing.
+
+
+---
+
+# Implementation History: Admin Orders Management Screen
+
+> **Associated Issue**: Create Admin Orders Screen  
+> **Status**: Completed  
+> **Target Branch / Scope**: Admin Orders Management (`src/app/admin/pedidos`, `src/features/orders`)
+
+---
+
+## Issue Metadata Schema
+
+| Metadata Key           | Value                                                                                                                                      |
+| :--------------------- | :----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Title**              | Admin Orders Management View, Mocked Dataset, Status Workflow & Confirmation Dialogs                                                       |
+| **Domain**             | Frontend (`src/app/admin/pedidos`, `src/features/orders`, `src/services`, `src/hooks`, `src/mocks`)                                        |
+| **Primary Frameworks** | Next.js App Router (Server Components), `@tanstack/react-table`, Zustand, Zod, Base UI Dialog/Select, Tailwind CSS, `@biomejs/biome`       |
+| **Type**               | Feature & Admin UI/UX                                                                                                                      |
+
+---
+
+## Execution Breakdown
+
+### 1. Order Schemas & Validation (`src/features/orders/schemas/orders.schema.ts`)
+
+- **Zod Schemas**: Defined `orderStatusSchema` (`pending`, `preparing`, `ready`, `completed`, `cancelled`), `deliveryTypeSchema` (`delivery`, `takeaway`), `paymentMethodSchema` (`pix`, `card`, `cash`), `orderItemSchema`, `orderAddressSchema`, `orderSchema`, and `updateOrderStatusSchema`.
+
+---
+
+### 2. Mocked Orders Dataset (`src/mocks/orders.ts`, `src/mocks/index.ts`)
+
+- **Mock Data (`MOCK_ORDERS`)**: Created realistic pastelaria orders referencing catalog items (`MOCK_PRODUCTS`), covering multiple customer profiles, delivery addresses, takeaway counter pickups, item-level and order-level observations, cash change notes (`changeFor`), discounts, and all 5 order statuses.
+
+---
+
+### 3. Pure Async Service Layer (`src/services/orders.service.ts`, `src/features/orders/services/orders.service.ts`)
+
+- **Orders Service (`ordersService`)**: Implemented pure asynchronous functions `getOrders` and `updateOrderStatus` returning typed `Result<TData, TError>` and validating status transitions with Zod (`updateOrderStatusSchema`).
+
+---
+
+### 4. Global State & Custom Hook (`src/features/orders/stores/order.store.ts`, `src/hooks/use-orders.ts`, `src/features/orders/hooks/use-orders.ts`)
+
+- **Zustand Store (`useOrderStore`)**: Manages global `orders` list, `isLoading`, `error`, and optimistic status updates (`updateStatusInStore`).
+- **Orchestration Hook (`useOrders`)**: Orchestrates service calls (`refreshOrders`, `handleUpdateStatus`), search filtering (by order code, customer name, phone, or item name), status and delivery type filtering, and selected order modal state.
+
+---
+
+### 5. Presentation Components (`src/features/orders/components/*`)
+
+- **`OrderStatusBadge` & `OrderDeliveryBadge` (`order-status-badge.tsx`)**: Semantic status badges, delivery mode badges, and payment method icon mappings (`ORDER_STATUS_CONFIG`, `DELIVERY_TYPE_CONFIG`, `PAYMENT_METHOD_CONFIG`).
+- **`AdminOrderStats` (`admin-order-stats.tsx`)**: 5 KPI summary cards displaying total orders, pending orders, orders in progress (preparing/ready), completed orders, and estimated revenue.
+- **`AdminOrderFilters` (`admin-order-filters.tsx`)**: Search input, `SelectInput` dropdowns for delivery mode and status, quick status filter tabs with live counters, and filter reset button.
+- **`AdminOrderTable` (`admin-order-table.tsx`)**: Paginated table built on `DataTable` (`@tanstack/react-table`) displaying order code/timestamp, customer & delivery details, item summary, total & payment method, status badge, and quick actions (advance status, view details, cancel order).
+- **`OrderDetailsDialog` (`order-details-dialog.tsx`)**: Complete order inspection dialog showing customer info, delivery address or takeaway notice, highlighted order observations, item list with thumbnails and item notes, financial breakdown (subtotal, shipping, discount, total, cash change), and status selector.
+- **`OrderCancelDialog` (`order-cancel-dialog.tsx`)**: Confirmation modal triggered from the table action column before marking an order as `cancelled`.
+- **`AdminOrderSection` (`admin-order-section.tsx`)**: Main client container integrating header, mock restoration button, KPI stats, filters, data table, and details dialog.
+
+---
+
+### 6. Admin Route (`src/app/admin/pedidos/page.tsx`)
+
+- **Server Component Page (`AdminPedidosPage`)**: Async Server Component fetching initial orders via `ordersService.getAll()` and hydrating `<AdminOrderSection />`.
+
+---
+
+## Verification & Tooling
+
+- **Linter & Formatting**: Checked and formatted with `@biomejs/biome` (`npx @biomejs/biome check --write`).
+- **Type Safety**: Verified with `npx tsc --noEmit` with zero errors.
