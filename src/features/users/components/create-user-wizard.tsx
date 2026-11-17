@@ -1,45 +1,15 @@
 "use client";
 
-import React from "react";
 import { CreateUserAddressStep } from "@/features/users/components/create-user-address-step";
 import { CreateUserPayloadView } from "@/features/users/components/create-user-payload";
 import { CreateUserPersonalStep } from "@/features/users/components/create-user-personal-step";
 import { CreateUserRoleField } from "@/features/users/components/create-user-role-field";
+import { CreateUserSteps } from "@/features/users/components/create-user-steps";
 import {
-	type CreateUserStep,
-	CreateUserSteps,
-} from "@/features/users/components/create-user-steps";
-import {
-	type CreateAdminUserPayload,
-	type CreateUserPayload,
-	createAdminUserSchema,
-	createUserSchema,
-	userRoleSchema,
-} from "@/features/users/schemas/create-user.schema";
-import type {
-	CreateUserAddressFormData,
-	CreateUserAddressFormInput,
-} from "@/features/users/schemas/create-user-address.schema";
-import type {
-	CreateUserPersonalFormData,
-	CreateUserPersonalFormInput,
-} from "@/features/users/schemas/create-user-personal.schema";
-
-const emptyPersonalValues: CreateUserPersonalFormInput = {
-	name: "",
-	email: "",
-	phone: "",
-};
-
-const emptyAddressValues: CreateUserAddressFormInput = {
-	zipCode: "",
-	street: "",
-	number: "",
-	complement: "",
-	neighborhood: "",
-	city: "",
-	state: "",
-};
+	emptyAddressValues,
+	emptyPersonalValues,
+	useCreateUser,
+} from "@/features/users/hooks/use-create-user";
 
 interface CreateUserWizardProps {
 	mode?: "customer" | "admin";
@@ -48,100 +18,34 @@ interface CreateUserWizardProps {
 export const CreateUserWizard = ({
 	mode = "customer",
 }: CreateUserWizardProps) => {
-	const [activeStep, setActiveStep] = React.useState<CreateUserStep>(0);
-	const [payload, setPayload] = React.useState<
-		CreateUserPayload | CreateAdminUserPayload | null
-	>(null);
-	const [personalData, setPersonalData] =
-		React.useState<CreateUserPersonalFormData | null>(null);
-	const [addressData, setAddressData] =
-		React.useState<CreateUserAddressFormData | null>(null);
-	const [role, setRole] = React.useState("");
-	const [roleError, setRoleError] = React.useState("");
-	const [payloadError, setPayloadError] = React.useState("");
-	const [formVersion, setFormVersion] = React.useState(0);
-
-	const resetWizard = React.useCallback(() => {
-		setFormVersion((version) => version + 1);
-		setActiveStep(0);
-		setPayload(null);
-		setPersonalData(null);
-		setAddressData(null);
-		setRole("");
-		setRoleError("");
-		setPayloadError("");
-	}, []);
-
-	const handleStepChange = (nextStep: CreateUserStep) => {
-		if (nextStep === 0 || personalData) {
-			setActiveStep(nextStep);
-		}
-	};
-
-	const handlePersonalContinue = (data: CreateUserPersonalFormData) => {
-		setPersonalData(data);
-		setPayloadError("");
-		setActiveStep(1);
-	};
-
-	const handleAddressComplete = (address: CreateUserAddressFormData) => {
-		if (!personalData) {
-			setActiveStep(0);
-			return;
-		}
-
-		const result = createUserSchema.safeParse({
-			...personalData,
-			addresses: [address],
-		});
-
-		if (!result.success) {
-			setPayloadError(
-				result.error.issues[0]?.message ??
-					"Não foi possível montar o payload. Revise os dados informados.",
-			);
-			return;
-		}
-
-		setAddressData(address);
-		setPayloadError("");
-
-		if (mode === "customer") {
-			setPayload(result.data);
-			return;
-		}
-
-		const validatedRole = userRoleSchema.safeParse(role);
-		if (!validatedRole.success) {
-			setRoleError("Selecione um perfil para continuar.");
-			return;
-		}
-
-		const adminPayload = createAdminUserSchema.safeParse({
-			...result.data,
-			role: validatedRole.data,
-		});
-		if (!adminPayload.success) {
-			setPayloadError(
-				adminPayload.error.issues[0]?.message ??
-					"Não foi possível montar o payload. Revise os dados informados.",
-			);
-			return;
-		}
-
-		setPayload(adminPayload.data);
-	};
+	const {
+		activeStep,
+		setActiveStep,
+		createdPayload,
+		successMessage,
+		personalData,
+		addressData,
+		role,
+		roleError,
+		payloadError,
+		formVersion,
+		isSubmitting,
+		isFetchingAddress,
+		resetWizard,
+		handleStepChange,
+		handleRoleChange,
+		handlePersonalContinue,
+		handleAddressComplete,
+		lookupAddressByZipCode,
+	} = useCreateUser(mode);
 
 	return (
 		<div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-			{payload ? (
+			{createdPayload ? (
 				<CreateUserPayloadView
-					onEdit={() => {
-						setPayload(null);
-						setActiveStep(0);
-					}}
+					message={successMessage}
 					onRestart={resetWizard}
-					payload={payload}
+					payload={createdPayload}
 				/>
 			) : (
 				<>
@@ -150,16 +54,13 @@ export const CreateUserWizard = ({
 							{mode === "admin" && (
 								<CreateUserRoleField
 									error={roleError}
-									onValueChange={(value) => {
-										setRole(value);
-										setRoleError("");
-									}}
+									onValueChange={handleRoleChange}
 									value={role}
 								/>
 							)}
 							<CreateUserSteps
 								activeStep={activeStep}
-								canOpenAddress={activeStep === 1}
+								canOpenAddress={activeStep === 1 || Boolean(personalData)}
 								onStepChange={handleStepChange}
 							/>
 						</div>
@@ -174,17 +75,20 @@ export const CreateUserWizard = ({
 					)}
 					<div hidden={activeStep !== 0}>
 						<CreateUserPersonalStep
-							key={`personal-${formVersion}`}
 							defaultValues={personalData ?? emptyPersonalValues}
+							key={`personal-${formVersion}`}
 							onContinue={handlePersonalContinue}
 						/>
 					</div>
 					<div hidden={activeStep !== 1}>
 						<CreateUserAddressStep
-							key={`address-${formVersion}`}
 							defaultValues={addressData ?? emptyAddressValues}
+							isFetchingAddress={isFetchingAddress}
+							isSubmitting={isSubmitting}
+							key={`address-${formVersion}`}
 							onBack={() => setActiveStep(0)}
 							onComplete={handleAddressComplete}
+							onLookupZipCode={lookupAddressByZipCode}
 						/>
 					</div>
 				</>

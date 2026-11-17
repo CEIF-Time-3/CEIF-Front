@@ -20,7 +20,7 @@ export const CreateUserPersonalStep = ({
 	defaultValues,
 	onContinue,
 }: CreateUserPersonalStepProps) => {
-	const { control, handleSubmit } = useForm<
+	const {register, control, handleSubmit } = useForm<
 		CreateUserPersonalFormInput,
 		unknown,
 		CreateUserPersonalFormData
@@ -54,9 +54,9 @@ export const CreateUserPersonalStep = ({
 					control={control}
 					id="name"
 					label="Nome completo"
-					name="name"
 					placeholder="Ex.: Maria da Silva"
 					required
+					{...register("name")}
 				/>
 				<div className="grid gap-4 sm:grid-cols-2">
 					<FieldInput
