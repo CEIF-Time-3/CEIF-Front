@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductSection } from "@/features/products/components";
 import { productService } from "@/features/products/services/product.service";
+import { categorieService } from "@/services/categories.service";
 
 export default async function ClientHomePage() {
-	const result = await productService.getAll();
+	const [resultProduct, resultCategory] = await Promise.all([productService.getAll(), categorieService.getAll()]);
 
 	return (
 		<div className="flex flex-col">
@@ -61,7 +62,10 @@ export default async function ClientHomePage() {
 				</div>
 			</section>
 
-			<ProductSection initialProducts={result.success ? result.data : []} />
+			<ProductSection
+				initialProducts={resultProduct.success ? resultProduct.data : []}
+				initialCategories={resultCategory.success ? resultCategory.data : []}
+			/>
 		</div>
 	);
 }

@@ -1,7 +1,7 @@
 import type {
-	Product,
 	ProductCreateInput,
 	ProductUpdateInput,
+	ProductWithCategory,
 } from "@/features/products/schemas/products.schema";
 import { deleteProductResponseSchema } from "@/features/products/schemas/products.schema";
 import type { Result } from "@/types/result";
@@ -10,9 +10,11 @@ import { http } from "@/utils/http";
 import { productResponseSchema } from "../schemas/products.schema";
 
 export class ProductService {
-	async getAll(): Promise<Result<Product[], string>> {
+	async getAll(): Promise<Result<ProductWithCategory[], string>> {
 		try {
-			const data = await http<unknown>("/products");
+			const data = await http<unknown>("/products-with-category");
+
+			console.log("data", data);
 			const parsedData = productResponseSchema.parse(data);
 
 			return { success: true, data: parsedData.data };

@@ -6,8 +6,9 @@ import { SelectInput } from "@/components/inputs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Categorie } from "@/features/categories/schemas/categories.schema";
+import type { ProductStatusFilter } from "@/features/products/hooks/use-products";
 
-export type ProductStatusFilter = "all" | "available" | "unavailable";
+export type { ProductStatusFilter };
 
 interface AdminProductFiltersProps {
 	searchQuery: string;
@@ -41,10 +42,13 @@ export const AdminProductFilters = ({
 		{ label: "Apenas Indisponíveis", value: "unavailable" },
 	];
 
-	const categoriesOptions = categories.map((c) => ({
-		label: c.name,
-		value: c.name,
-	}));
+	const categoriesOptions = [
+		{ label: "Todas as categorias", value: "Todos" },
+		...categories.map((c) => ({
+			label: c.name,
+			value: c.name,
+		})),
+	];
 
 	return (
 		<div className="border-border bg-card/70 flex w-full min-w-0 flex-col gap-4 rounded-xl border p-4 shadow-xs backdrop-blur-xs">

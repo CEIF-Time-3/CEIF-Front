@@ -24,11 +24,11 @@ import {
 } from "@/components/ui/dialog";
 import type { Categorie } from "@/features/categories/schemas/categories.schema";
 import { ProductAvailabilityToggle } from "@/features/products/components/product-availability-toggle";
+import { useProducts } from "@/features/products/hooks/use-products";
 import {
 	type ProductCreateInput,
 	productCreateSchema,
 } from "@/features/products/schemas/products.schema";
-import { useProductStore } from "@/features/products/stores/product.store";
 
 type ProductCreateFormValues = z.input<typeof productCreateSchema>;
 
@@ -37,8 +37,7 @@ export interface ProductCreateFormProps {
 }
 
 export const ProductCreateForm = ({ categories }: ProductCreateFormProps) => {
-	const create = useProductStore((state) => state.create);
-	const getAll = useProductStore((state) => state.getAll);
+	const { createProduct } = useProducts();
 	const [open, setOpen] = React.useState(false);
 
 	const resolvedCategoryOptions = React.useMemo(() => {
@@ -88,13 +87,12 @@ export const ProductCreateForm = ({ categories }: ProductCreateFormProps) => {
 	}, [reset]);
 
 	const handleFormSubmit = async (data: ProductCreateInput) => {
-		const result = await create(data);
+		const result = await createProduct(data);
 		if (!result.success) {
 			setError("root", { message: result.error });
 			return;
 		}
 
-		await getAll();
 		reset();
 		setOpen(false);
 	};

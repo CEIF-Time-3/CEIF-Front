@@ -18,12 +18,12 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { ProductAvailabilityToggle } from "@/features/products/components/product-availability-toggle";
+import { useProducts } from "@/features/products/hooks/use-products";
 import type {
 	Product,
 	ProductUpdateInput,
 } from "@/features/products/schemas/products.schema";
 import { productUpdateSchema } from "@/features/products/schemas/products.schema";
-import { useProductStore } from "@/features/products/stores/product.store";
 
 type ProductEditFormValues = z.input<typeof productUpdateSchema>;
 
@@ -41,7 +41,7 @@ const getProductFormValues = (product: Product): ProductUpdateInput => ({
 });
 
 export const ProductEditForm = ({ product }: ProductEditFormProps) => {
-	const update = useProductStore((state) => state.update);
+	const { updateProduct } = useProducts();
 	const [open, setOpen] = React.useState(false);
 	const {
 		handleSubmit,
@@ -70,7 +70,7 @@ export const ProductEditForm = ({ product }: ProductEditFormProps) => {
 	);
 
 	const handleFormSubmit = async (data: ProductUpdateInput) => {
-		const result = await update(product.id, data);
+		const result = await updateProduct(product.id, data);
 		if (!result.success) {
 			setError("root", { message: result.error });
 			return;

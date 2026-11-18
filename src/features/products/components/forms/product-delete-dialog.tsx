@@ -12,15 +12,15 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { useProducts } from "@/features/products/hooks/use-products";
 import type { Product } from "@/features/products/schemas/products.schema";
-import { useProductStore } from "@/features/products/stores/product.store";
 
 interface ProductDeleteDialogProps {
 	product: Product;
 }
 
 export const ProductDeleteDialog = ({ product }: ProductDeleteDialogProps) => {
-	const deleteProduct = useProductStore((state) => state.deleteProduct);
+	const { deleteProduct } = useProducts();
 	const [open, setOpen] = React.useState(false);
 	const [error, setError] = React.useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = React.useState(false);
