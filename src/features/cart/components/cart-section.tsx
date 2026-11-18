@@ -65,7 +65,9 @@ export const CartSection = () => {
 					Início
 				</Link>
 				<span>/</span>
-				<span className="text-foreground font-semibold">Carrinho de Compras</span>
+				<span className="text-foreground font-semibold">
+					Carrinho de Compras
+				</span>
 			</div>
 
 			{/* Section Header */}
@@ -78,7 +80,8 @@ export const CartSection = () => {
 					Carrinho de Compras
 				</h1>
 				<p className="text-muted-foreground text-sm sm:text-base">
-					Confira seus itens, escolha a entrega e finalize seu pedido com rapidez.
+					Confira seus itens, escolha a entrega e finalize seu pedido com
+					rapidez.
 				</p>
 			</div>
 

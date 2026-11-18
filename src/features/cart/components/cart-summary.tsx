@@ -160,7 +160,10 @@ export const CartSummary = ({
 							</button>
 						</div>
 					) : (
-						<form onSubmit={handleCouponSubmit} className="flex flex-col gap-1.5">
+						<form
+							onSubmit={handleCouponSubmit}
+							className="flex flex-col gap-1.5"
+						>
 							<div className="flex gap-2">
 								<div className="relative flex-1">
 									<Input
@@ -202,7 +205,9 @@ export const CartSummary = ({
 							Valor Total
 						</span>
 						<span className="text-muted-foreground text-[11px]">
-							{deliveryType === "delivery" ? "Em até 40 min" : "Pronto em 15 min"}
+							{deliveryType === "delivery"
+								? "Em até 40 min"
+								: "Pronto em 15 min"}
 						</span>
 					</div>
 					<span className="text-foreground text-2xl font-black tracking-tight sm:text-3xl">

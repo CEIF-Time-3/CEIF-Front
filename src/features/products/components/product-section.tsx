@@ -1,13 +1,19 @@
 "use client";
 
-import { ArrowRight, CheckCircle2, ShoppingBag, Utensils, X } from "lucide-react";
+import {
+	ArrowRight,
+	CheckCircle2,
+	ShoppingBag,
+	Utensils,
+	X,
+} from "lucide-react";
 import Link from "next/link";
 import React from "react";
+import { useCart } from "@/features/cart/hooks/use-cart";
 import { ProductCategoryFilter } from "@/features/products/components/product-category-filter";
 import { ProductList } from "@/features/products/components/product-list";
 import { ProductSearch } from "@/features/products/components/product-search";
 import type { Product } from "@/features/products/schemas/products.schema";
-import { useCart } from "@/features/cart/hooks/use-cart";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS } from "@/mocks/products";
 
 interface ProductSectionProps {
@@ -21,7 +27,9 @@ export const ProductSection = ({
 }: ProductSectionProps) => {
 	const [searchQuery, setSearchQuery] = React.useState("");
 	const [selectedCategory, setSelectedCategory] = React.useState("Todos");
-	const [addedNotification, setAddedNotification] = React.useState<string | null>(null);
+	const [addedNotification, setAddedNotification] = React.useState<
+		string | null
+	>(null);
 
 	const { addItem } = useCart();
 
@@ -65,12 +73,17 @@ export const ProductSection = ({
 
 		if (selectedCategory !== "Todos") {
 			// Find matching category ID or filter
-			const categoryObj = MOCK_CATEGORIES.find((c) => c.name === selectedCategory);
+			const categoryObj = MOCK_CATEGORIES.find(
+				(c) => c.name === selectedCategory,
+			);
 			if (categoryObj) {
 				result = result.filter(
 					(p) =>
-						(p as unknown as { categoryId?: string }).categoryId === categoryObj.id ||
-						p.description?.toLowerCase().includes(selectedCategory.toLowerCase()),
+						(p as unknown as { categoryId?: string }).categoryId ===
+							categoryObj.id ||
+						p.description
+							?.toLowerCase()
+							.includes(selectedCategory.toLowerCase()),
 				);
 			}
 		}
@@ -89,7 +102,10 @@ export const ProductSection = ({
 	}, [baseProducts, searchQuery, selectedCategory]);
 
 	return (
-		<section id="cardapio" className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+		<section
+			id="cardapio"
+			className="container mx-auto px-4 py-8 sm:px-6 lg:px-8"
+		>
 			<div className="mb-8 flex flex-col gap-2">
 				<div className="text-primary flex items-center gap-2 text-sm font-bold tracking-wider uppercase">
 					<Utensils className="h-4 w-4" />

@@ -42,7 +42,9 @@ interface CartCheckoutDialogProps {
 	total: number;
 	onCheckout: (
 		customer: CheckoutFormValues,
-	) => Promise<Result<{ orderId: string; message: string; createdAt: string }, string>>;
+	) => Promise<
+		Result<{ orderId: string; message: string; createdAt: string }, string>
+	>;
 }
 
 export const CartCheckoutDialog = ({
@@ -128,7 +130,8 @@ export const CartCheckoutDialog = ({
 						</DialogTitle>
 
 						<DialogDescription className="mt-2 text-sm">
-							Recebemos o seu pedido e já vamos iniciar o preparo dos seus pastéis!
+							Recebemos o seu pedido e já vamos iniciar o preparo dos seus
+							pastéis!
 						</DialogDescription>
 
 						<div className="bg-muted/50 border-border/70 my-6 w-full rounded-2xl border p-4 text-left">
@@ -142,7 +145,9 @@ export const CartCheckoutDialog = ({
 							</div>
 
 							<div className="flex items-center justify-between pt-2 text-sm">
-								<span className="text-muted-foreground font-medium">Total:</span>
+								<span className="text-muted-foreground font-medium">
+									Total:
+								</span>
 								<span className="text-foreground font-black text-base">
 									{formatPrice(total)}
 								</span>
@@ -162,7 +167,9 @@ export const CartCheckoutDialog = ({
 								nativeButton={false}
 								size="lg"
 								className="h-11 w-full gap-2 font-bold"
-								render={<Link href="/" onClick={() => handleDialogClose(false)} />}
+								render={
+									<Link href="/" onClick={() => handleDialogClose(false)} />
+								}
 							>
 								<ShoppingBag className="h-4 w-4" />
 								<span>Voltar para o Cardápio</span>
@@ -182,7 +189,8 @@ export const CartCheckoutDialog = ({
 								Finalizar Pedido
 							</DialogTitle>
 							<DialogDescription>
-								Informe seus dados de contato e endereço para entrega ou retirada.
+								Informe seus dados de contato e endereço para entrega ou
+								retirada.
 							</DialogDescription>
 						</DialogHeader>
 
@@ -200,7 +208,10 @@ export const CartCheckoutDialog = ({
 
 							<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 								<div className="flex flex-col gap-1">
-									<Label htmlFor="customerName" className="text-xs font-semibold">
+									<Label
+										htmlFor="customerName"
+										className="text-xs font-semibold"
+									>
 										Seu Nome *
 									</Label>
 									<Input
@@ -218,7 +229,10 @@ export const CartCheckoutDialog = ({
 								</div>
 
 								<div className="flex flex-col gap-1">
-									<Label htmlFor="customerPhone" className="text-xs font-semibold">
+									<Label
+										htmlFor="customerPhone"
+										className="text-xs font-semibold"
+									>
 										WhatsApp / Telefone *
 									</Label>
 									<Input
@@ -287,7 +301,10 @@ export const CartCheckoutDialog = ({
 
 								<div className="grid grid-cols-2 gap-3">
 									<div className="flex flex-col gap-1">
-										<Label htmlFor="neighborhood" className="text-xs font-semibold">
+										<Label
+											htmlFor="neighborhood"
+											className="text-xs font-semibold"
+										>
 											Bairro *
 										</Label>
 										<Input
@@ -305,7 +322,10 @@ export const CartCheckoutDialog = ({
 									</div>
 
 									<div className="flex flex-col gap-1">
-										<Label htmlFor="complement" className="text-xs font-semibold">
+										<Label
+											htmlFor="complement"
+											className="text-xs font-semibold"
+										>
 											Complemento
 										</Label>
 										<Input
@@ -321,7 +341,9 @@ export const CartCheckoutDialog = ({
 							<div className="bg-muted/40 border-border/80 flex items-center gap-3 rounded-xl border p-3 text-xs">
 								<ShoppingBag className="text-primary h-5 w-5 shrink-0" />
 								<div>
-									<p className="font-bold text-foreground">Retirada no Balcão</p>
+									<p className="font-bold text-foreground">
+										Retirada no Balcão
+									</p>
 									<p className="text-muted-foreground">
 										Seu pedido estará pronto para retirada em nosso balcão em
 										aproximadamente 15 a 20 minutos.
@@ -416,7 +438,9 @@ export const CartCheckoutDialog = ({
 							</div>
 							<div className="flex items-center justify-between text-muted-foreground">
 								<span>Entrega:</span>
-								<span>{deliveryFee === 0 ? "Grátis" : formatPrice(deliveryFee)}</span>
+								<span>
+									{deliveryFee === 0 ? "Grátis" : formatPrice(deliveryFee)}
+								</span>
 							</div>
 							{discount > 0 && (
 								<div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
@@ -425,7 +449,9 @@ export const CartCheckoutDialog = ({
 								</div>
 							)}
 							<div className="border-border/60 flex items-center justify-between border-t pt-1.5 text-sm">
-								<span className="font-semibold text-muted-foreground">Total a pagar:</span>
+								<span className="font-semibold text-muted-foreground">
+									Total a pagar:
+								</span>
 								<span className="font-extrabold text-foreground text-base">
 									{formatPrice(total)}
 								</span>
@@ -446,7 +472,9 @@ export const CartCheckoutDialog = ({
 								disabled={isSubmitting}
 								className="font-bold h-10 px-6"
 							>
-								{isSubmitting ? "Enviando Pedido..." : "Confirmar e Enviar Pedido"}
+								{isSubmitting
+									? "Enviando Pedido..."
+									: "Confirmar e Enviar Pedido"}
 							</Button>
 						</DialogFooter>
 					</form>
