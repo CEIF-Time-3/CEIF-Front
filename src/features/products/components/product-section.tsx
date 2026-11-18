@@ -13,25 +13,41 @@ import { useCart } from "@/features/cart/hooks/use-cart";
 import { ProductCategoryFilter } from "@/features/products/components/product-category-filter";
 import { ProductList } from "@/features/products/components/product-list";
 import { ProductSearch } from "@/features/products/components/product-search";
+import { useProducts } from "@/features/products/hooks/use-products";
 import type { Product } from "@/features/products/schemas/products.schema";
-import { MOCK_CATEGORIES, MOCK_PRODUCTS } from "@/mocks/products";
+import { useCategorie } from "@/hooks/use-categorie";
 
 interface ProductSectionProps {
 	onAddToCart?: (product: Product) => void;
 	initialProducts: Product[];
+	initialCategories: { id: string; name: string }[];
 }
 
 export const ProductSection = ({
 	onAddToCart,
 	initialProducts,
+	initialCategories,
 }: ProductSectionProps) => {
-	const [searchQuery, setSearchQuery] = React.useState("");
-	const [selectedCategory, setSelectedCategory] = React.useState("Todos");
 	const [addedNotification, setAddedNotification] = React.useState<
 		string | null
 	>(null);
 
 	const { addItem } = useCart();
+	const { categories } = useCategorie(initialCategories);
+	const {
+		filteredProducts,
+		categoriesOptions,
+		isLoading,
+		searchQuery,
+		setSearchQuery,
+		selectedCategory,
+		setSelectedCategory,
+		resetFilters,
+	} = useProducts({
+		initialProducts,
+		categories,
+		fallbackToMock: true,
+	});
 
 	const handleAddToCart = React.useCallback(
 		(product: Product) => {
@@ -53,53 +69,6 @@ export const ProductSection = ({
 			return () => clearTimeout(timer);
 		}
 	}, [addedNotification]);
-
-	const categories = React.useMemo(
-		() => ["Todos", ...MOCK_CATEGORIES.map((c) => c.name)],
-		[],
-	);
-
-	const resetFilters = React.useCallback(() => {
-		setSearchQuery("");
-		setSelectedCategory("Todos");
-	}, []);
-
-	const baseProducts = React.useMemo(() => {
-		return initialProducts.length > 0 ? initialProducts : MOCK_PRODUCTS;
-	}, [initialProducts]);
-
-	const filteredProducts = React.useMemo(() => {
-		let result = [...baseProducts];
-
-		if (selectedCategory !== "Todos") {
-			// Find matching category ID or filter
-			const categoryObj = MOCK_CATEGORIES.find(
-				(c) => c.name === selectedCategory,
-			);
-			if (categoryObj) {
-				result = result.filter(
-					(p) =>
-						(p as unknown as { categoryId?: string }).categoryId ===
-							categoryObj.id ||
-						p.description
-							?.toLowerCase()
-							.includes(selectedCategory.toLowerCase()),
-				);
-			}
-		}
-
-		if (searchQuery.trim() !== "") {
-			const query = searchQuery.toLowerCase().trim();
-			result = result.filter(
-				(p) =>
-					p.name.toLowerCase().includes(query) ||
-					p.description?.toLowerCase().includes(query) ||
-					p.ingredients?.toLowerCase().includes(query),
-			);
-		}
-
-		return result;
-	}, [baseProducts, searchQuery, selectedCategory]);
 
 	return (
 		<section
@@ -127,7 +96,7 @@ export const ProductSection = ({
 
 				<div className="border-border/50 border-t pt-2">
 					<ProductCategoryFilter
-						categories={categories}
+						categories={categoriesOptions}
 						selectedCategory={selectedCategory}
 						onSelectCategory={setSelectedCategory}
 					/>
@@ -153,7 +122,7 @@ export const ProductSection = ({
 
 			<ProductList
 				products={filteredProducts}
-				isLoading={false}
+				isLoading={isLoading}
 				onAddToCart={handleAddToCart}
 				onResetFilters={resetFilters}
 			/>

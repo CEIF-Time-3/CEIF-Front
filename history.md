@@ -3766,3 +3766,32 @@ Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/logi
 
 - **Server Component Page (`AdminUsersPage`)**: Async Server Component fetching initial users via `userService.getAll()` and hydrating `<AdminUserSection />`.
 - **Sidebar Link**: Normalized the "Usuários" sidebar route to `/admin/usuarios`.
+
+
+---
+
+# Implementation History: Category Integration in Product Filters (2026-11-18)
+
+### 1. Category Store & Custom Hook (`src/features/categories/stores/categorie.store.ts`, `src/features/categories/hooks/use-categorie.ts`, `src/hooks/use-categorie.ts`, `src/services/categories.service.ts`)
+
+- **Zustand Store (`useCategorieStore`)**: Added `setCategories` and `getAll` actions to manage global categories state (`categories`, `isLoading`, `error`).
+- **Custom Hook (`useCategorie`)**: Orchestrates initial category hydration and automatic client-side fetching via `getAll` when no initial categories are provided.
+
+### 2. Client & Admin Product Category Filtering (`src/app/(client)/page.tsx`, `src/features/products/components/product-section.tsx`, `src/features/products/components/admin-product-filters.tsx`, `src/features/products/components/admin-product-section.tsx`)
+
+- **Client Home & Product Section**: Hydrated categories on the home page via `categorieService.getAll()` and wired `useCategorie` into `ProductSection` to populate `ProductCategoryFilter` and filter catalog items by category.
+- **Admin Product Section & Filters**: Added `"Todas as categorias"` (`Todos`) option to `AdminProductFilters` and connected `selectedCategory` and `useCategorie` in `AdminProductSection` to filter admin products by category (`categoryId` / `categoryName`) and category name search.
+
+---
+
+# Implementation History: Products Hooks Folder & Component Refactoring (2026-11-18)
+
+### 1. Products Custom Hooks (`src/features/products/hooks/use-products.ts`, `src/features/products/hooks/index.ts`, `src/hooks/use-products.ts`)
+
+- **`useProducts` Hook**: Created custom hook in `src/features/products/hooks/use-products.ts` (and re-exported in `src/hooks/use-products.ts` and `src/features/products/hooks/index.ts`) to orchestrate Zustand product store state (`useProductStore`), initial products hydration (with optional `fallbackToMock`), dynamic search/category/status filtering, and CRUD actions (`refreshProducts`, `createProduct`, `updateProduct`, `setProductAvailability`, `deleteProduct`).
+- **Service Re-export (`src/services/product.service.ts`)**: Added `src/services/product.service.ts` re-exporting `ProductService` and `productService` for architectural consistency.
+
+### 2. Product Components Organization (`src/features/products/components/*`)
+
+- **`ProductSection` & `AdminProductSection`**: Refactored both client and admin sections to consume `useProducts` instead of duplicating search/category/status filter logic and direct store selectors.
+- **Product Forms & Dialogs (`product-create-form.tsx`, `product-edit-form.tsx`, `product-delete-dialog.tsx`, `product-availability-dialog.tsx`)**: Updated form and dialog components to execute product mutations via `useProducts` (`createProduct`, `updateProduct`, `deleteProduct`, `setProductAvailability`).

@@ -10,8 +10,13 @@ export const productSchema = z.object({
 	ingredients: z.string().nullable(),
 });
 
+export const productWithCategorySchema = productSchema.extend({
+	categoryId: z.string().nullable(),
+	categoryName: z.string().nullable(),
+});
+
 export const productResponseSchema = z.object({
-	data: z.array(productSchema),
+	data: z.array(productWithCategorySchema),
 	success: z.boolean(),
 });
 
@@ -59,3 +64,4 @@ export type ProductResponse = z.infer<typeof productResponseSchema>;
 export type ProductCreateInput = z.infer<typeof productCreateSchema>;
 export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
 export type ProductFilter = z.infer<typeof productFilterSchema>;
+export type ProductWithCategory = z.infer<typeof productWithCategorySchema>;

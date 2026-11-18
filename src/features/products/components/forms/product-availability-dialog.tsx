@@ -12,8 +12,8 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { useProducts } from "@/features/products/hooks/use-products";
 import type { Product } from "@/features/products/schemas/products.schema";
-import { useProductStore } from "@/features/products/stores/product.store";
 
 interface ProductAvailabilityDialogProps {
 	product: Product;
@@ -22,7 +22,7 @@ interface ProductAvailabilityDialogProps {
 export const ProductAvailabilityDialog = ({
 	product,
 }: ProductAvailabilityDialogProps) => {
-	const setAvailability = useProductStore((state) => state.setAvailability);
+	const { setProductAvailability } = useProducts();
 	const [open, setOpen] = React.useState(false);
 	const [error, setError] = React.useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -31,7 +31,7 @@ export const ProductAvailabilityDialog = ({
 	const handleConfirm = async () => {
 		setIsSubmitting(true);
 		setError(null);
-		const result = await setAvailability(product.id, available);
+		const result = await setProductAvailability(product.id, available);
 		setIsSubmitting(false);
 
 		if (!result.success) {
