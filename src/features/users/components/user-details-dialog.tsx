@@ -35,7 +35,7 @@ interface UserDetailsDialogProps {
 }
 
 const roleSelectOptions = [
-	{ label: "Cliente", value: "cliente" },
+	{ label: "Cliente", value: "customer" },
 	{ label: "Administrador", value: "admin" },
 ];
 
@@ -44,7 +44,8 @@ const statusSelectOptions = [
 	{ label: "Inativo", value: "inactive" },
 ];
 
-export const formatUserDate = (isoDate: string): string => {
+export const formatUserDate = (isoDate?: string): string => {
+	if (!isoDate) return "-";
 	const parsed = new Date(isoDate);
 	if (Number.isNaN(parsed.getTime())) {
 		return isoDate;
@@ -100,7 +101,11 @@ export const UserDetailsDialog = ({
 					</div>
 					<DialogDescription className="flex items-center gap-1.5 text-xs">
 						<CalendarClock className="size-3.5" />
-						<span>Cadastrado em {formatUserDate(user.createdAt)}</span>
+						<span>
+							{user.createdAt
+								? `Cadastrado em ${formatUserDate(user.createdAt)}`
+								: user.code || "Detalhes do Usuário"}
+						</span>
 					</DialogDescription>
 				</DialogHeader>
 
@@ -138,41 +143,47 @@ export const UserDetailsDialog = ({
 					<div className="flex flex-col gap-2.5">
 						<div className="flex items-center justify-between">
 							<h4 className="text-foreground text-xs font-bold tracking-wider uppercase">
-								Endereços Cadastrados ({user.addresses.length})
+								Endereços Cadastrados ({user.addresses?.length ?? 0})
 							</h4>
 						</div>
 
-						<div className="flex flex-col gap-2.5">
-							{user.addresses.map((address) => (
-								<div
-									key={address.id}
-									className="border-border bg-muted/30 flex flex-col gap-1.5 rounded-xl border p-3.5"
-								>
-									<div className="flex items-center justify-between gap-2">
-										<div className="flex items-center gap-1.5 text-xs font-bold">
-											<MapPin className="text-primary size-3.5" />
-											<span>{address.label ?? "Endereço"}</span>
+						{!user.addresses || user.addresses.length === 0 ? (
+							<div className="border-border bg-muted/20 text-muted-foreground rounded-xl border p-4 text-center text-xs">
+								Nenhum endereço cadastrado para este usuário.
+							</div>
+						) : (
+							<div className="flex flex-col gap-2.5">
+								{user.addresses.map((address) => (
+									<div
+										key={address.id}
+										className="border-border bg-muted/30 flex flex-col gap-1.5 rounded-xl border p-3.5"
+									>
+										<div className="flex items-center justify-between gap-2">
+											<div className="flex items-center gap-1.5 text-xs font-bold">
+												<MapPin className="text-primary size-3.5" />
+												<span>{address.label ?? "Endereço"}</span>
+											</div>
+											{address.isDefault && (
+												<Badge
+													variant="secondary"
+													className="text-[10px] font-semibold"
+												>
+													Principal
+												</Badge>
+											)}
 										</div>
-										{address.isDefault && (
-											<Badge
-												variant="secondary"
-												className="text-[10px] font-semibold"
-											>
-												Principal
-											</Badge>
-										)}
+										<p className="text-foreground text-xs font-semibold">
+											{address.street}, {address.number}
+											{address.complement ? ` — ${address.complement}` : ""}
+										</p>
+										<p className="text-muted-foreground text-xs">
+											{address.neighborhood} • {address.city}/{address.state} •
+											CEP {address.zipCode}
+										</p>
 									</div>
-									<p className="text-foreground text-xs font-semibold">
-										{address.street}, {address.number}
-										{address.complement ? ` — ${address.complement}` : ""}
-									</p>
-									<p className="text-muted-foreground text-xs">
-										{address.neighborhood} • {address.city}/{address.state} •
-										CEP {address.zipCode}
-									</p>
-								</div>
-							))}
-						</div>
+								))}
+							</div>
+						)}
 					</div>
 
 					{/* Configurações de Conta */}

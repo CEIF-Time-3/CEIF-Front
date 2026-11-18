@@ -19,7 +19,9 @@ export const AdminUserStats = ({ users }: AdminUserStatsProps) => {
 	const totalUsers = users.length;
 	const activeUsers = users.filter((u) => u.status === "active").length;
 	const inactiveUsers = users.filter((u) => u.status === "inactive").length;
-	const customerUsers = users.filter((u) => u.role === "cliente").length;
+	const customerUsers = users.filter(
+		(u) => u.role === "customer" || (u.role as string) === "cliente",
+	).length;
 	const adminUsers = users.filter((u) => u.role === "admin").length;
 
 	const stats = [

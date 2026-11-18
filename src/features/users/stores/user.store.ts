@@ -10,23 +10,18 @@ import type {
 	UserStatus,
 } from "@/features/users/schemas/user.schema";
 import { addressesService } from "@/features/users/service/addresses.service";
-import { userService } from "@/features/users/service/user.service";
-import { MOCK_USERS } from "@/mocks/user";
+import {
+	formatUserInitials,
+	userService,
+} from "@/features/users/service/user.service";
 import type { Result } from "@/types/result";
-
-const getInitials = (name: string): string => {
-	const parts = name.trim().split(/\s+/).filter(Boolean);
-	if (parts.length === 0) return "US";
-	if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-	return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-};
 
 const buildAdminUserFromPayload = (
 	payload: CreateUserPayload | CreateAdminUserPayload,
 	existingCount: number,
 ): AdminUser => {
 	const nextNumber = String(existingCount + 1).padStart(3, "0");
-	const role: UserRole = "role" in payload ? payload.role : "cliente";
+	const role: UserRole = "role" in payload ? payload.role : "customer";
 
 	return {
 		id: `usr-${Date.now()}`,
@@ -36,8 +31,9 @@ const buildAdminUserFromPayload = (
 		phone: payload.phone,
 		role,
 		status: "active",
+		isActive: true,
 		avatarUrl: null,
-		initials: getInitials(payload.name),
+		initials: formatUserInitials(payload.name),
 		addresses: payload.addresses.map((address, index) => ({
 			...address,
 			id: `addr-${Date.now()}-${index + 1}`,
@@ -61,6 +57,7 @@ export interface UserActions {
 	setUsers: (users: AdminUser[]) => void;
 	setLoading: (isLoading: boolean) => void;
 	setError: (error: string | null) => void;
+	getAll: () => Promise<Result<AdminUser[], string>>;
 	updateStatusInStore: (userId: string, status: UserStatus) => void;
 	updateRoleInStore: (userId: string, role: UserRole) => void;
 	addUserToStore: (user: AdminUser) => void;
@@ -76,7 +73,7 @@ export interface UserActions {
 export type UserStore = UserState & UserActions;
 
 const initialState: UserState = {
-	users: MOCK_USERS,
+	users: [],
 	isLoading: false,
 	isSubmitting: false,
 	isFetchingAddress: false,
@@ -91,10 +88,27 @@ export const useUserStore = create<UserStore>((set) => ({
 	setLoading: (isLoading) => set({ isLoading }),
 	setError: (error) => set({ error }),
 
+	getAll: async () => {
+		set({ isLoading: true, error: null });
+		const result = await userService.getAll();
+		set(
+			result.success
+				? { users: result.data, isLoading: false }
+				: { isLoading: false, error: result.error },
+		);
+		return result;
+	},
+
 	updateStatusInStore: (userId, status) =>
 		set((state) => ({
 			users: state.users.map((user) =>
-				user.id === userId ? { ...user, status } : user,
+				user.id === userId
+					? {
+							...user,
+							status,
+							isActive: status === "active",
+						}
+					: user,
 			),
 		})),
 

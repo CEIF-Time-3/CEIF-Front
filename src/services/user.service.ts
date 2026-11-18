@@ -1,5 +1,8 @@
 export {
+	createUser,
+	formatUserInitials,
 	getUsers,
+	mapApiUserToAdminUser,
 	UserService,
 	updateUserRole,
 	updateUserStatus,

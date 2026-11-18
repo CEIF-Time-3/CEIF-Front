@@ -1,6 +1,6 @@
 import type { AdminUser } from "@/features/users/schemas/user.schema";
 
-export type MockUserRole = "cliente" | "admin";
+export type MockUserRole = "customer" | "admin";
 
 export const mockUser = {
 	name: "Eduardo Silva",
@@ -48,7 +48,7 @@ export const MOCK_USERS: AdminUser[] = [
 		name: "Mariana Costa",
 		email: "mariana.costa@email.com.br",
 		phone: "(11) 98765-4321",
-		role: "cliente",
+		role: "customer",
 		status: "active",
 		avatarUrl:
 			"https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80",
@@ -87,7 +87,7 @@ export const MOCK_USERS: AdminUser[] = [
 		name: "Carlos Eduardo Mendes",
 		email: "carlos.mendes@email.com.br",
 		phone: "(11) 99123-7890",
-		role: "cliente",
+		role: "customer",
 		status: "active",
 		avatarUrl:
 			"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
@@ -114,7 +114,7 @@ export const MOCK_USERS: AdminUser[] = [
 		name: "Fernanda Oliveira",
 		email: "fernanda.oliveira@email.com.br",
 		phone: "(11) 97654-1122",
-		role: "cliente",
+		role: "customer",
 		status: "active",
 		avatarUrl:
 			"https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
@@ -168,7 +168,7 @@ export const MOCK_USERS: AdminUser[] = [
 		name: "Juliana Ribeiro",
 		email: "juliana.ribeiro@email.com.br",
 		phone: "(11) 95532-4410",
-		role: "cliente",
+		role: "customer",
 		status: "active",
 		avatarUrl: null,
 		initials: "JR",
@@ -194,7 +194,7 @@ export const MOCK_USERS: AdminUser[] = [
 		name: "Lucas Ferreira",
 		email: "lucas.ferreira@email.com.br",
 		phone: "(11) 94321-6543",
-		role: "cliente",
+		role: "customer",
 		status: "inactive",
 		avatarUrl: null,
 		initials: "LF",
@@ -220,7 +220,7 @@ export const MOCK_USERS: AdminUser[] = [
 		name: "Beatriz Santos",
 		email: "beatriz.santos@email.com.br",
 		phone: "(11) 98877-2233",
-		role: "cliente",
+		role: "customer",
 		status: "active",
 		avatarUrl:
 			"https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&auto=format&fit=crop&q=80",
@@ -247,7 +247,7 @@ export const MOCK_USERS: AdminUser[] = [
 		name: "Gabriel Souza",
 		email: "gabriel.souza@email.com.br",
 		phone: "(11) 97711-3344",
-		role: "cliente",
+		role: "customer",
 		status: "inactive",
 		avatarUrl: null,
 		initials: "GS",

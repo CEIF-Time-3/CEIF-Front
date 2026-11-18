@@ -8,7 +8,10 @@ import { productService } from "@/features/products/services/product.service";
 import { categorieService } from "@/services/categories.service";
 
 export default async function ClientHomePage() {
-	const [resultProduct, resultCategory] = await Promise.all([productService.getAll(), categorieService.getAll()]);
+	const [resultProduct, resultCategory] = await Promise.all([
+		productService.getAll(),
+		categorieService.getAll(),
+	]);
 
 	return (
 		<div className="flex flex-col">

@@ -18,6 +18,17 @@ import type {
 	UserStatus,
 } from "@/features/users/schemas/user.schema";
 
+export const formatPhoneNumber = (phone: string): string => {
+	const cleaned = phone.replace(/\D/g, "");
+	if (cleaned.length === 11) {
+		return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`;
+	}
+	if (cleaned.length === 10) {
+		return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`;
+	}
+	return phone;
+};
+
 interface AdminUserTableProps {
 	users: AdminUser[];
 	isLoading?: boolean;
@@ -57,13 +68,17 @@ export const AdminUserTable = ({
 									<span className="text-foreground text-sm font-bold">
 										{user.name}
 									</span>
-									<span className="text-muted-foreground font-mono text-xs">
-										{user.code}
-									</span>
+									{user.code && (
+										<span className="text-muted-foreground font-mono text-xs">
+											{user.code}
+										</span>
+									)}
 								</div>
-								<span className="text-muted-foreground text-xs">
-									Desde {formatUserDate(user.createdAt)}
-								</span>
+								{user.createdAt && (
+									<span className="text-muted-foreground text-xs">
+										Desde {formatUserDate(user.createdAt)}
+									</span>
+								)}
 							</div>
 						</div>
 					);
@@ -80,10 +95,12 @@ export const AdminUserTable = ({
 								<Mail className="text-muted-foreground size-3.5 shrink-0" />
 								<span className="truncate">{user.email}</span>
 							</span>
-							<span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-								<Phone className="size-3 shrink-0" />
-								<span>{user.phone}</span>
-							</span>
+							{user.phone && (
+								<span className="text-muted-foreground flex items-center gap-1.5 text-xs">
+									<Phone className="size-3 shrink-0" />
+									<span>{formatPhoneNumber(user.phone)}</span>
+								</span>
+							)}
 						</div>
 					);
 				},
@@ -94,7 +111,7 @@ export const AdminUserTable = ({
 				cell: ({ row }) => {
 					const user = row.original;
 					const primaryAddress =
-						user.addresses.find((a) => a.isDefault) ?? user.addresses[0];
+						user.addresses?.find((a) => a.isDefault) ?? user.addresses?.[0];
 
 					if (!primaryAddress) {
 						return (
