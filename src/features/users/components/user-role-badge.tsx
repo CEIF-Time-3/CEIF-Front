@@ -24,7 +24,7 @@ export const USER_ROLE_CONFIG: Record<
 			"border-purple-500/25 bg-purple-500/15 text-purple-700 hover:bg-purple-500/25 dark:text-purple-400",
 		icon: ShieldCheck,
 	},
-	cliente: {
+	customer: {
 		label: "Cliente",
 		badgeClassName:
 			"border-blue-500/25 bg-blue-500/15 text-blue-700 hover:bg-blue-500/25 dark:text-blue-400",
@@ -61,12 +61,18 @@ export const USER_STATUS_CONFIG: Record<
 };
 
 interface UserRoleBadgeProps {
-	role: UserRole;
+	role: UserRole | string;
 	className?: string;
 }
 
 export const UserRoleBadge = ({ role, className }: UserRoleBadgeProps) => {
-	const config = USER_ROLE_CONFIG[role];
+	const normalizedRole = role === "cliente" ? "customer" : role;
+	const config = USER_ROLE_CONFIG[normalizedRole as UserRole] ?? {
+		label: role,
+		badgeClassName:
+			"border-zinc-500/25 bg-zinc-500/15 text-zinc-700 hover:bg-zinc-500/25 dark:text-zinc-400",
+		icon: UserRound,
+	};
 	const Icon = config.icon;
 
 	return (

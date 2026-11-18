@@ -1,7 +1,6 @@
 "use client";
 
 import { SelectInput } from "@/components/inputs";
-import { userRoleSchema } from "@/features/users/schemas/create-user.schema";
 
 interface CreateUserRoleFieldProps {
 	error?: string;
@@ -9,10 +8,10 @@ interface CreateUserRoleFieldProps {
 	value: string;
 }
 
-const roleOptions = userRoleSchema.options.map((role) => ({
-	value: role,
-	label: role === "admin" ? "Administrador" : "Cliente",
-}));
+const roleOptions = [
+	{ value: "customer", label: "Cliente" },
+	{ value: "admin", label: "Administrador" },
+];
 
 export const CreateUserRoleField = ({
 	error,

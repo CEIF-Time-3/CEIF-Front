@@ -6,7 +6,7 @@ export const createUserSchema = createUserPersonalSchema.extend({
 	addresses: z.array(createUserAddressSchema).length(1),
 });
 
-export const userRoleSchema = z.enum(["cliente", "admin"]);
+export const userRoleSchema = z.enum(["customer", "admin"]);
 
 export const createAdminUserSchema = createUserSchema.extend({
 	role: userRoleSchema,

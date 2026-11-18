@@ -7,17 +7,30 @@ import type {
 	UserStatus,
 } from "@/features/users/schemas/user.schema";
 import { useUserStore } from "@/features/users/stores/user.store";
+import { MOCK_USERS } from "@/mocks/user";
 import { userService } from "@/services/user.service";
 
 export type UserRoleFilter = "all" | UserRole;
 export type UserStatusFilter = "all" | UserStatus;
 
-export const useUsers = (initialUsers?: AdminUser[]) => {
+export interface UseUsersOptions {
+	initialUsers?: AdminUser[];
+	fallbackToMock?: boolean;
+}
+
+export const useUsers = (
+	optionsOrInitialUsers?: AdminUser[] | UseUsersOptions,
+) => {
+	const options = Array.isArray(optionsOrInitialUsers)
+		? { initialUsers: optionsOrInitialUsers }
+		: (optionsOrInitialUsers ?? {});
+	const { initialUsers, fallbackToMock = false } = options;
+
 	const users = useUserStore((state) => state.users);
 	const isLoading = useUserStore((state) => state.isLoading);
 	const error = useUserStore((state) => state.error);
 	const setUsers = useUserStore((state) => state.setUsers);
-	const setLoading = useUserStore((state) => state.setLoading);
+	const getAll = useUserStore((state) => state.getAll);
 	const setError = useUserStore((state) => state.setError);
 	const updateStatusInStore = useUserStore(
 		(state) => state.updateStatusInStore,
@@ -33,24 +46,23 @@ export const useUsers = (initialUsers?: AdminUser[]) => {
 	);
 
 	React.useEffect(() => {
-		if (initialUsers && initialUsers.length > 0) {
-			setUsers(initialUsers);
+		if (initialUsers !== undefined) {
+			if (initialUsers.length > 0) {
+				setUsers(initialUsers);
+			} else if (fallbackToMock) {
+				setUsers(MOCK_USERS);
+			} else {
+				setUsers([]);
+			}
+			return;
 		}
-	}, [initialUsers, setUsers]);
+
+		void getAll();
+	}, [initialUsers, fallbackToMock, setUsers, getAll]);
 
 	const refreshUsers = React.useCallback(async () => {
-		setLoading(true);
-		setError(null);
-		const result = await userService.getAll();
-		setLoading(false);
-
-		if (result.success) {
-			setUsers(result.data);
-		} else {
-			setError(result.error);
-		}
-		return result;
-	}, [setError, setLoading, setUsers]);
+		return await getAll();
+	}, [getAll]);
 
 	const handleUpdateStatus = React.useCallback(
 		async (userId: string, nextStatus: UserStatus) => {
@@ -86,18 +98,23 @@ export const useUsers = (initialUsers?: AdminUser[]) => {
 		return users.filter((user) => {
 			const matchesSearch =
 				query === "" ||
-				user.code.toLowerCase().includes(query) ||
+				Boolean(user.code?.toLowerCase().includes(query)) ||
 				user.name.toLowerCase().includes(query) ||
 				user.email.toLowerCase().includes(query) ||
-				user.phone.toLowerCase().includes(query) ||
-				user.addresses.some(
-					(addr) =>
-						addr.neighborhood.toLowerCase().includes(query) ||
-						addr.city.toLowerCase().includes(query) ||
-						addr.street.toLowerCase().includes(query),
+				Boolean(user.phone?.toLowerCase().includes(query)) ||
+				Boolean(
+					user.addresses?.some(
+						(addr) =>
+							addr.neighborhood?.toLowerCase().includes(query) ||
+							addr.city?.toLowerCase().includes(query) ||
+							addr.street?.toLowerCase().includes(query),
+					),
 				);
 
-			const matchesRole = roleFilter === "all" || user.role === roleFilter;
+			const matchesRole =
+				roleFilter === "all" ||
+				user.role === roleFilter ||
+				(roleFilter === "customer" && (user.role as string) === "cliente");
 			const matchesStatus =
 				statusFilter === "all" || user.status === statusFilter;
 

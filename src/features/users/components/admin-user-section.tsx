@@ -63,7 +63,7 @@ export const AdminUserSection = ({ initialUsers }: AdminUserSectionProps) => {
 						className="gap-2 self-start sm:self-auto"
 					>
 						<RotateCcw className="size-4" />
-						<span>Restaurar Mock</span>
+						<span>Atualizar</span>
 					</Button>
 
 					<UserCreateDialog />

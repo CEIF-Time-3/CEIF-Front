@@ -3,8 +3,10 @@ import { AdminProductSection } from "@/features/products/components";
 import { productService } from "@/features/products/services/product.service";
 
 export default async function AdminProductsPage() {
-	const [result, categoriesResult] = await Promise.all([productService.getAll(), categorieService.getAll()]);
-	
+	const [result, categoriesResult] = await Promise.all([
+		productService.getAll(),
+		categorieService.getAll(),
+	]);
 
 	return (
 		<AdminProductSection

@@ -26,7 +26,7 @@ interface AdminUserFiltersProps {
 
 const roleOptions = [
 	{ label: "Todos os perfis", value: "all" },
-	{ label: "Clientes", value: "cliente" },
+	{ label: "Clientes", value: "customer" },
 	{ label: "Administradores", value: "admin" },
 ];
 
@@ -52,7 +52,9 @@ export const AdminUserFilters = ({
 	const counts = React.useMemo(() => {
 		return {
 			all: users.length,
-			cliente: users.filter((u) => u.role === "cliente").length,
+			customer: users.filter(
+				(u) => u.role === "customer" || (u.role as string) === "cliente",
+			).length,
 			admin: users.filter((u) => u.role === "admin").length,
 		};
 	}, [users]);
@@ -63,7 +65,7 @@ export const AdminUserFilters = ({
 		count: number;
 	}[] = [
 		{ label: "Todos", value: "all", count: counts.all },
-		{ label: "Clientes", value: "cliente", count: counts.cliente },
+		{ label: "Clientes", value: "customer", count: counts.customer },
 		{ label: "Administradores", value: "admin", count: counts.admin },
 	];
 

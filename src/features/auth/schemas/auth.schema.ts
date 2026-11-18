@@ -4,7 +4,7 @@ export const authUserSchema = z.object({
 	id: z.string(),
 	name: z.string(),
 	email: z.string().email(),
-	role: z.enum(["admin", "cliente"]),
+	role: z.enum(["admin", "customer", "cliente"]),
 });
 
 export const loginResponseSchema = z.object({
@@ -20,7 +20,7 @@ export const meUserSchema = z.object({
 	name: z.string(),
 	email: z.string().email(),
 	phone: z.string(),
-	role: z.enum(["admin", "cliente"]),
+	role: z.enum(["admin", "customer", "cliente"]),
 	isActive: z.boolean(),
 	createdAt: z.string(),
 	updatedAt: z.string(),

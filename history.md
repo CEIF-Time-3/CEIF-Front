@@ -3795,3 +3795,62 @@ Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/logi
 
 - **`ProductSection` & `AdminProductSection`**: Refactored both client and admin sections to consume `useProducts` instead of duplicating search/category/status filter logic and direct store selectors.
 - **Product Forms & Dialogs (`product-create-form.tsx`, `product-edit-form.tsx`, `product-delete-dialog.tsx`, `product-availability-dialog.tsx`)**: Updated form and dialog components to execute product mutations via `useProducts` (`createProduct`, `updateProduct`, `deleteProduct`, `setProductAvailability`).
+
+
+---
+
+# Implementation History: User Table API Integration (2026-11-18)
+
+### 1. Zod Schemas (`src/features/users/schemas/create-user.schema.ts`, `src/features/users/schemas/user.schema.ts`)
+
+- **Role Support (`userRoleSchema`)**: Added `"employee"` to `userRoleSchema` (`z.enum(["cliente", "admin", "employee"])`) to support employee accounts from backend.
+- **Backend API Schemas (`apiUserSchema`, `usersResponseSchema`)**: Created `apiUserSchema` matching the `/users` endpoint contract (`id`, `name`, `email`, `phone`, `role`, `isActive`, optional `addresses`, `code`, `createdAt`, `avatarUrl`) and `usersResponseSchema` for envelope validation (`{ success: true, data: [...] }`).
+- **Flexible UI Model (`adminUserSchema`)**: Updated `adminUserSchema` to support optional/default fields (`addresses: []`, `status`, `isActive`, `code`, `initials`) to prevent parsing failures while keeping full UI compatibility.
+
+### 2. User Service Layer (`src/features/users/service/user.service.ts`, `src/services/user.service.ts`)
+
+- **Real Endpoint Integration (`getUsers`)**: Replaced static mock return with `http<unknown>("/users")`, validated via `usersResponseSchema.parse()`, and transformed into `AdminUser[]` using `mapApiUserToAdminUser`.
+- **Mapping & Formatting Helpers**: Added `mapApiUserToAdminUser` and `formatUserInitials` to derive initials, fallback user codes (`#USR-xxx`), and map `isActive: boolean` to `status: "active" | "inactive"`.
+- **Pure Async Re-exports**: Re-exported all user operations and helpers from pure service layer in `src/services/user.service.ts`.
+
+### 3. Zustand Global Store (`src/features/users/stores/user.store.ts`)
+
+- **`getAll` Action**: Added `getAll` action to `useUserStore` to fetch users via `userService.getAll()`, update `users` state, manage loading flags, and capture error states.
+- **State Initialization**: Updated initial `users` array to `[]` instead of static mocks.
+
+### 4. Custom Hook Refactoring (`src/features/users/hooks/use-users.ts`, `src/hooks/use-users.ts`)
+
+- **Flexible Hydration**: Updated `useUsers` to accept `initialUsers` or `UseUsersOptions` with optional `fallbackToMock`, automatically calling `getAll()` if initial users are not supplied.
+- **Defensive Filtering**: Safeguarded search query filtering with optional chaining on `code`, `phone`, and `addresses`.
+
+### 5. UI Presentation & Components (`src/features/users/components/*`)
+
+- **`UserRoleBadge`**: Added badge styling and `Briefcase` icon for `employee` role ("Funcionário"), with fallback for unknown roles.
+- **`AdminUserTable`**: Added `formatPhoneNumber` for formatting phone numbers (`(85) 99999-0001`), safeguarded address lookup with optional chaining (`user.addresses?.find`), and safely rendered optional creation dates.
+- **`AdminUserFilters`**: Added "Funcionários" to role filter select options, quick filter tabs, and counts.
+- **`AdminUserStats`**: Added dynamic "Funcionários" counter card when employee accounts are present.
+- **`UserDetailsDialog` & `CreateUserRoleField`**: Added "Funcionário" option and handled empty address lists gracefully.
+- **`AdminUserSection`**: Replaced "Restaurar Mock" label with "Atualizar" linked to `refreshUsers()`.
+
+### 6. Tests (`src/test/services/user.service.test.ts`)
+
+- Added unit tests for initials generation, phone formatting, API response parsing for `/users`, data mapping, and error handling.
+
+
+---
+
+# Implementation History: User Role Alignment (`customer` & `admin`) (2026-11-18)
+
+### 1. Role Schema & Mapping Adjustment (`src/features/users/schemas/create-user.schema.ts`, `src/features/users/service/user.service.ts`)
+
+- **Role Enum (`userRoleSchema`)**: Adjusted `userRoleSchema` to `z.enum(["customer", "admin"])` to match backend roles (`customer` and `admin`).
+- **Service Normalization (`mapApiUserToAdminUser`)**: Updated mapping logic to map backend role to `"customer"` | `"admin"` cleanly (defaulting to `"customer"`).
+
+### 2. UI & Filter Synchronization (`src/features/users/components/*`, `src/features/users/stores/user.store.ts`)
+
+- **`UserRoleBadge`**: Configured `USER_ROLE_CONFIG` for `admin` ("Administrador") and `customer` ("Cliente"), with backwards-compatible fallback for legacy labels.
+- **`AdminUserFilters`**: Configured filter options and quick tabs for `customer` ("Clientes") and `admin` ("Administradores").
+- **`AdminUserStats`**: Re-aligned stats to 5 core cards with `customerUsers` reflecting `customer` accounts.
+- **`UserDetailsDialog` & `CreateUserRoleField`**: Set role selection options strictly to `customer` ("Cliente") and `admin` ("Administrador").
+- **`MOCK_USERS`**: Updated mock users from `"cliente"` to `"customer"`.
+- **Unit Tests**: Updated `user.service.test.ts` to test payload validation with `customer` and `admin`.
