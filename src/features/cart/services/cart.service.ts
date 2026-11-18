@@ -1,4 +1,7 @@
-import type { CartItem, CheckoutFormValues } from "@/features/cart/schemas/cart.schema";
+import type {
+	CartItem,
+	CheckoutFormValues,
+} from "@/features/cart/schemas/cart.schema";
 import type { Result } from "@/types/result";
 import { getErrorMessage } from "@/utils/getErrorMessage";
 import { http } from "@/utils/http";

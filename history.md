@@ -477,3 +477,72 @@
 
 - **Linter & Formatting**: Checked and formatted with `@biomejs/biome` (`npx @biomejs/biome check --write`).
 - **Type Safety**: Verified with `npx tsc --noEmit` with zero errors.
+
+
+---
+
+# Implementation History: Admin Users Management Screen
+
+> **Associated Issue**: Create Admin Users Screen  
+> **Status**: Completed (`2026-11-18`)  
+> **Target Branch / Scope**: Admin Users Management (`src/app/admin/usuarios`, `src/features/users`)
+
+---
+
+## Issue Metadata Schema
+
+| Metadata Key           | Value                                                                                                                                      |
+| :--------------------- | :----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Title**              | Admin Users Management View, Mocked Dataset, Status/Role Workflow & Details Dialog                                                         |
+| **Domain**             | Frontend (`src/app/admin/usuarios`, `src/features/users`, `src/services`, `src/hooks`, `src/mocks`)                                        |
+| **Primary Frameworks** | Next.js App Router (Server Components), `@tanstack/react-table`, Zustand, Zod, Base UI Dialog/Select, Tailwind CSS, `@biomejs/biome`       |
+| **Type**               | Feature & Admin UI/UX                                                                                                                      |
+
+---
+
+## Execution Breakdown
+
+### 1. User Schemas & Validation (`src/features/users/schemas/user.schema.ts`)
+
+- **Zod Schemas**: Defined `userStatusSchema` (`active`, `inactive`), `adminUserAddressSchema`, `adminUserSchema`, `updateUserStatusSchema`, and `updateUserRoleSchema`.
+
+---
+
+### 2. Mocked Users Dataset (`src/mocks/user.ts`, `src/mocks/index.ts`)
+
+- **Mock Data (`MOCK_USERS`)**: Created a dataset of 9 users (administrators and customers) with profile avatars, initials, contact information, multiple addresses, and account status.
+
+---
+
+### 3. Pure Async Service Layer (`src/features/users/service/user.service.ts`, `src/services/user.service.ts`)
+
+- **User Service (`userService`)**: Added pure asynchronous functions `getUsers`, `updateUserStatus`, `updateUserRole`, and `createUser` (with graceful offline/mock fallback) returning typed `Result<TData, TError>` and validating inputs with Zod.
+
+---
+
+### 4. Global State & Custom Hook (`src/features/users/stores/user.store.ts`, `src/features/users/hooks/use-users.ts`, `src/hooks/use-users.ts`)
+
+- **Zustand Store (`useUserStore`)**: Extended global store to manage `users`, `isLoading`, `setUsers`, `updateStatusInStore`, `updateRoleInStore`, and automatic insertion of newly registered users into the store (`createUser`).
+- **Orchestration Hook (`useUsers` & `useCreateUser`)**: Orchestrates service calls (`refreshUsers`, `handleUpdateStatus`, `handleUpdateRole`), search filtering (by code, name, email, phone, or address), role/status filtering, selected user modal state, and role validation on the first wizard step.
+
+---
+
+### 5. Presentation Components (`src/features/users/components/*`)
+
+- **`CreateUserAddressStep` & `CreateUserPersonalStep` (`create-user-address-step.tsx`, `create-user-personal-step.tsx`)**: Fixed `CreateUserAddressStepProps` typing (`isFetchingAddress`, `isSubmitting`, `onLookupZipCode`) to match `CreateUserWizard`, added automatic CEP lookup on blur, and unified `FieldInput` usage with `control` and `name`.
+
+- **`UserRoleBadge` & `UserStatusBadge` (`user-role-badge.tsx`)**: Semantic role (`admin`, `cliente`) and account status (`active`, `inactive`) badges.
+- **`AdminUserStats` (`admin-user-stats.tsx`)**: 5 KPI summary cards displaying total users, active users, inactive users, customers, and administrators.
+- **`AdminUserFilters` (`admin-user-filters.tsx`)**: Search input, `SelectInput` dropdowns for role and status, quick role filter tabs with live counters, and filter reset button.
+- **`AdminUserTable` (`admin-user-table.tsx`)**: Paginated table built on `DataTable` (`@tanstack/react-table`) displaying user avatar/code, contact info, primary address, role badge, status badge, and quick actions (view details, toggle active status).
+- **`UserDetailsDialog` (`user-details-dialog.tsx`)**: Complete user inspection dialog showing profile summary, registered addresses, and role/status management controls.
+- **`UserStatusDialog` (`user-status-dialog.tsx`)**: Confirmation modal triggered from the table action column before activating or deactivating an account.
+- **`UserCreateDialog` (`user-create-dialog.tsx`)**: Modal dialog embedding `<CreateUserWizard mode="admin" />` to allow creating new users directly from the admin screen.
+- **`AdminUserSection` (`admin-user-section.tsx`)**: Main client container integrating header, mock restoration button, new user dialog, KPI stats, filters, data table, and details dialog.
+
+---
+
+### 6. Admin Route & Navigation (`src/app/admin/usuarios/page.tsx`, `src/components/admin-sidebar.tsx`)
+
+- **Server Component Page (`AdminUsersPage`)**: Async Server Component fetching initial users via `userService.getAll()` and hydrating `<AdminUserSection />`.
+- **Sidebar Link**: Normalized the "Usuários" sidebar route to `/admin/usuarios`.

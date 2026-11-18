@@ -1,5 +1,5 @@
 export {
-  getOrders,
-  ordersService,
-  updateOrderStatus,
+	getOrders,
+	ordersService,
+	updateOrderStatus,
 } from "@/features/orders/services/orders.service";

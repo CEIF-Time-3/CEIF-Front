@@ -40,7 +40,10 @@ export const CartItemList = ({
 	const [isClearDialogOpen, setIsClearDialogOpen] = React.useState(false);
 
 	const freeShippingPercent = React.useMemo(() => {
-		return Math.min(100, Math.round((subtotal / FREE_DELIVERY_THRESHOLD) * 100));
+		return Math.min(
+			100,
+			Math.round((subtotal / FREE_DELIVERY_THRESHOLD) * 100),
+		);
 	}, [subtotal]);
 
 	const handleConfirmClear = React.useCallback(() => {
@@ -98,7 +101,8 @@ export const CartItemList = ({
 						Itens no Pedido
 					</h2>
 					<p className="text-muted-foreground text-xs sm:text-sm">
-						{totalItems} {totalItems === 1 ? "item selecionado" : "itens selecionados"}
+						{totalItems}{" "}
+						{totalItems === 1 ? "item selecionado" : "itens selecionados"}
 					</p>
 				</div>
 

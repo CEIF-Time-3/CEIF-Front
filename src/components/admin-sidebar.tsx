@@ -52,7 +52,7 @@ const defaultNavigationItems: NavItem[] = [
 	},
 	{
 		title: "Usuários",
-		url: "/admin/usuarios/novo",
+		url: "/admin/usuarios",
 		icon: UserRoundPlus,
 	},
 	{

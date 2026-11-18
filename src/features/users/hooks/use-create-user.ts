@@ -86,12 +86,20 @@ export const useCreateUser = (mode: "customer" | "admin" = "customer") => {
 
 	const handlePersonalContinue = React.useCallback(
 		(data: CreateUserPersonalFormData) => {
+			if (mode === "admin") {
+				const validatedRole = userRoleSchema.safeParse(role);
+				if (!validatedRole.success) {
+					setRoleError("Selecione um perfil para continuar.");
+					return;
+				}
+			}
+
 			setPersonalData(data);
 			setPayloadError("");
 			clearErrors();
 			setActiveStep(1);
 		},
-		[clearErrors],
+		[clearErrors, mode, role],
 	);
 
 	const handleAddressComplete = React.useCallback(
