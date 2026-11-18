@@ -1,8 +1,178 @@
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
+## 2026-11-18 — Login Feature: Auth Schema, Service, Store, Hook, Dialog & Header Button
+
+### Summary
+Implemented the full client-side login flow following project architecture rules (Zod → Service → Zustand Store → Custom Hook → Presentation Component).
+
+### Files created
+- `src/features/auth/schemas/login.schema.ts` — Zod schema (`loginSchema`) with email + password validation.
+- `src/features/auth/services/auth.service.ts` — Pure async service (`authService.login`, `authService.logout`) with mock credential validation and `AuthUser` type.
+- `src/features/auth/stores/auth.store.ts` — Zustand `useAuthStore` (persisted via `localStorage`) managing `user`, `isAuthenticated`, `setUser`, `clearUser`.
+- `src/features/auth/hooks/use-auth.ts` — `useAuth` orchestration hook exposing `login`, `logout`, `isLoggingIn`, `loginError`, `clearLoginError`.
+- `src/features/auth/components/login-dialog.tsx` — Login dialog triggered from the header "Entrar" button, using `react-hook-form` + `FieldInput` with email & password fields (password show/toggle), error feedback banner, and a "Cadastre-se" link.
+- `src/features/auth/components/user-menu.tsx` — Avatar dropdown menu shown when authenticated, with user name/email label, "Minha conta", conditional "Painel admin" link, and "Sair" action.
+
+### Files modified
+- `src/components/client-header.tsx` — Replaced static mock user badge + admin link with dynamic `isAuthenticated ? <UserMenu /> : <LoginDialog />` toggle, removing the mock user dependency.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 # Implementation History: Client Presentation Section & Styling
 
 > **Associated Issue**: [#39](https://github.com/orgs/CEIF-Time-3/projects/1/views/2?pane=issue&itemId=253338256&issue=CEIF-Time-3%7CCEIF-Front%7C39)  
 > **Status**: Completed  
 > **Target Branch / Scope**: Client Presentation & Platform Theme
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -18,6 +188,56 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ## Issue #39 Execution Breakdown
 
 ### 1. Color Palette Configuration (`src/app/globals.css`)
@@ -28,10 +248,110 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 2. Dynamic Favicon Generation (`src/app/icon.tsx`)
 
 - **Icon Creation**: Adapted the SVG paths from `src/components/icons/logo-icon.tsx` (`PastelIcon`).
 - **Next.js Integration**: Built an edge-rendered PNG dynamic favicon using `@vercel/og` (`ImageResponse`) with a rounded pastel yellow background.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -42,10 +362,110 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 4. Reusable Highlights Badge Component (`src/components/highlight-badge-list.tsx`)
 
 - **Component**: Created `HighlightBadgeList` displaying key trust metrics (_Entrega Rápida_, _Nota 4.9/5_, _100% Artesanal_).
 - **Layout Choice**: Kept a clean text layout using `font-bold text-foreground` and `text-muted-foreground` rather than badge wrappers for clean visual hierarchy.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -56,9 +476,109 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ## Verification & Tooling
 
 - **Linter & Code Quality**: All files formatted and validated using `@biomejs/biome`.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -67,6 +587,56 @@
 > **Associated Issue**: [#36](https://github.com/CEIF-Time-3/CEIF-Front/issues/36)  
 > **Status**: Completed  
 > **Target Branch / Scope**: Admin UI Shell & Layout (`feat/admin-ui-structure`)
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -82,12 +652,112 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ## Issue #40 Execution Breakdown
 
 ### 1. Admin Layout & Navigation Shell (`src/app/admin/layout.tsx`, `src/app/admin/page.tsx`)
 
 - **Layout Provider**: Configured `SidebarProvider` and `SidebarInset` wrapping the admin route hierarchy to manage responsive sidebar state and layout spacing.
 - **Admin Dashboard Route**: Created `/admin` page component serving as the central administration overview.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -98,15 +768,165 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 3. User Profile Dropdown (`src/components/admin-user-info.tsx`)
 
 - **User Info Component**: Built `AdminUserInfo` displaying user avatar (`Avatar`, `AvatarImage`, `AvatarFallback`), name, email, and role badge inside a `@radix-ui/react-dropdown-menu` dropdown (Perfil, Configurações, Sair).
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 4. Custom 404 Page (`src/app/not-found.tsx`)
 
 - **Error Page**: Designed custom 404 page featuring Lucide `FileQuestion` icon, responsive layout, go-back button (`router.back()`), and home action button (`Link` to `/`).
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -122,9 +942,109 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 6. Viewport Detection Hook (`src/hooks/use-mobile.ts`)
 
 - **`useIsMobile` Hook**: Implemented responsive breakpoint detection (`window.matchMedia` at `768px`) for layout switching.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -135,10 +1055,110 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ## Verification & Tooling
 
 - **Linter & Code Quality**: Code checked and validated using `@biomejs/biome` (`npx biome check src`).
 - **Build Verification**: Production build tested and verified via `npm run build`.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -147,6 +1167,56 @@
 > **Associated Issue**: [#33](https://github.com/CEIF-Time-3/CEIF-Front/issues/33)  
 > **Status**: Completed  
 > **Target Branch / Scope**: Client Product List & Filtering (`feat/client-product-list`)
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -162,11 +1232,111 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ## Issue #41 Execution Breakdown
 
 ### 1. Product Schemas & Validation (`src/features/products/schemas/product-schema.ts`, `src/schemas/product-schema.ts`)
 
 - **Validation**: Defined Zod schemas (`productSchema`, `productCategorySchema`) to validate product attributes (ID, name, description, price, category, imageUrl, and availability).
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -177,9 +1347,109 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 3. UI Logic & Custom Hook (`src/features/products/hooks/use-products.ts`)
 
 - **Custom Hook**: Implemented `useProducts` hook to orchestrate `product-service` calls, filter products dynamically by title/description and active category, and maintain UI state.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -194,10 +1464,110 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 5. Formatting Utilities & UI Primitives (`src/utils/format-price.ts`, `src/components/ui/card.tsx`)
 
 - **Price Utility**: Implemented `formatPrice` helper function utilizing `Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })`.
 - **Card Primitives**: Created presentation `Card` subcomponents (`Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter`).
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -208,11 +1578,111 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 # Implementation History: Admin Product List, UI Abstractions & Server Component Integration
 
 > **Associated Issue**: [#34](https://github.com/CEIF-Time-3/CEIF-Front/issues/34)  
 > **Status**: Completed  
 > **Target Branch / Scope**: Admin Product View, UI Primitives & Server Hydration (`feat/admin-product-view`)
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -228,12 +1698,112 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ## Issue #33 Execution Breakdown
 
 ### 1. Admin Product View & Server Component Page (`src/app/admin/produtos/page.tsx`, `src/features/products/components/admin-product-section.tsx`)
 
 - **Server Component Page**: Converted `/admin/produtos/page.tsx` into an async Next.js App Router Server Component, directly fetching initial product data and category lists via `productService.getProducts()` and `productService.getCategories()`.
 - **Client Section Wrapper**: Built `AdminProductSection` (`"use client"`) to orchestrate interactive UI presentation, search filters, and table views with server data hydration.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -245,11 +1815,111 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 3. Reusable Select Input Abstraction (`src/components/inputs/select-input.tsx`, `src/components/ui/select.tsx`)
 
 - **Select Primitives**: Refactored `src/components/ui/select.tsx` components to use arrow function component syntax.
 - **SelectInput Abstraction**: Built `SelectInput` in `src/components/inputs/select-input.tsx` to encapsulate `@/components/ui/select` primitives, accepting unified `options` arrays (`string[]` or `{ label, value, disabled }[]`).
 - **Filter Toolbar Refactoring**: Replaced all native HTML `<select>` elements in `AdminProductFilters` (`src/features/products/components/admin-product-filters.tsx`) with `SelectInput`.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -260,9 +1930,109 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 5. Architecture & Code Standard Compliance (`AGENTS.md`)
 
 - **Rule 9 (React Imports & Namespacing)**: Added Rule 9 to `AGENTS.md` enforcing `import React from "react";` (or `import type React from "react";`) and explicit `React.` hook namespacing (`React.useState`, `React.useEffect`, `React.useCallback`, `React.useMemo`), eliminating `import * as React`.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -273,11 +2043,111 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 # Implementation History: Client Cart Screen & Order Checkout
 
 > **Associated Issue**: Create Cart Screen  
 > **Status**: Completed  
 > **Target Branch / Scope**: Client Cart Screen (`feat/create-order-screen`)
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -290,10 +2160,110 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 2. State Management & Persistence (`src/features/cart/stores/cart.store.ts`)
 
 - **Zustand Cart Store**: Built `useCartStore` utilizing Zustand's `persist` middleware with localStorage (`ceif-cart-storage`) to maintain cart state across page reloads and client navigation.
 - **Cart Actions**: Implemented `addItem`, `removeItem`, `updateQuantity` (with removal on zero), `updateObservation`, and `clearCart`.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -303,9 +2273,109 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 4. Custom Hook & UI Orchestration (`src/features/cart/hooks/use-cart.ts`, `src/hooks/use-cart.ts`)
 
 - **`useCart` Hook**: Created custom orchestration hook providing hydration safety for SSR, item count, subtotal, dynamic free shipping calculation (`FREE_DELIVERY_THRESHOLD`), delivery method toggles, coupon handling (`PASTEL10`, `BEMVINDO`), and order checkout triggers.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -320,10 +2390,110 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 6. Client Header & Product Card Integration
 
 - **`ClientHeader` (`src/components/client-header.tsx`)**: Added dynamic item counter badge to the shopping bag icon.
 - **`ProductSection` (`src/features/products/components/product-section.tsx`)**: Wired "Adicionar" buttons to `useCart().addItem` and added an auto-dismissing toast notification on item addition.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -333,11 +2503,111 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ## Verification & Tooling
 
 - **Linter & Code Quality**: Validated with `@biomejs/biome` (`npm run lint`), passing with 0 errors across 86 files.
 - **Build Verification**: Tested production build with Turbopack (`npm run build`), successfully generating static page `/carrinho`.
 
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -366,6 +2636,56 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 # Testing Setup: Playwright (E2E)
 
 ### 1. Dependencies
@@ -383,6 +2703,56 @@
 ### 3. Tests
 
 - **`src/test/e2e/navigation.spec.ts`**: Smoke tests for home page hero (`h1`) and `/carrinho` route.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -409,11 +2779,111 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 # Implementation History: Admin Orders Management Screen
 
 > **Associated Issue**: Create Admin Orders Screen  
 > **Status**: Completed  
 > **Target Branch / Scope**: Admin Orders Management (`src/app/admin/pedidos`, `src/features/orders`)
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -428,11 +2898,111 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ## Execution Breakdown
 
 ### 1. Order Schemas & Validation (`src/features/orders/schemas/orders.schema.ts`)
 
 - **Zod Schemas**: Defined `orderStatusSchema` (`pending`, `preparing`, `ready`, `completed`, `cancelled`), `deliveryTypeSchema` (`delivery`, `takeaway`), `paymentMethodSchema` (`pix`, `card`, `cash`), `orderItemSchema`, `orderAddressSchema`, `orderSchema`, and `updateOrderStatusSchema`.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -442,9 +3012,109 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 3. Pure Async Service Layer (`src/services/orders.service.ts`, `src/features/orders/services/orders.service.ts`)
 
 - **Orders Service (`ordersService`)**: Implemented pure asynchronous functions `getOrders` and `updateOrderStatus` returning typed `Result<TData, TError>` and validating status transitions with Zod (`updateOrderStatusSchema`).
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -452,6 +3122,56 @@
 
 - **Zustand Store (`useOrderStore`)**: Manages global `orders` list, `isLoading`, `error`, and optimistic status updates (`updateStatusInStore`).
 - **Orchestration Hook (`useOrders`)**: Orchestrates service calls (`refreshOrders`, `handleUpdateStatus`), search filtering (by order code, customer name, phone, or item name), status and delivery type filtering, and selected order modal state.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -467,9 +3187,109 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 6. Admin Route (`src/app/admin/pedidos/page.tsx`)
 
 - **Server Component Page (`AdminPedidosPage`)**: Async Server Component fetching initial orders via `ordersService.getAll()` and hydrating `<AdminOrderSection />`.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -481,11 +3301,111 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 # Implementation History: Admin Users Management Screen
 
 > **Associated Issue**: Create Admin Users Screen  
 > **Status**: Completed (`2026-11-18`)  
 > **Target Branch / Scope**: Admin Users Management (`src/app/admin/usuarios`, `src/features/users`)
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -500,11 +3420,111 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ## Execution Breakdown
 
 ### 1. User Schemas & Validation (`src/features/users/schemas/user.schema.ts`)
 
 - **Zod Schemas**: Defined `userStatusSchema` (`active`, `inactive`), `adminUserAddressSchema`, `adminUserSchema`, `updateUserStatusSchema`, and `updateUserRoleSchema`.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -514,9 +3534,109 @@
 
 ---
 
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
+
+---
+
 ### 3. Pure Async Service Layer (`src/features/users/service/user.service.ts`, `src/services/user.service.ts`)
 
 - **User Service (`userService`)**: Added pure asynchronous functions `getUsers`, `updateUserStatus`, `updateUserRole`, and `createUser` (with graceful offline/mock fallback) returning typed `Result<TData, TError>` and validating inputs with Zod.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -524,6 +3644,56 @@
 
 - **Zustand Store (`useUserStore`)**: Extended global store to manage `users`, `isLoading`, `setUsers`, `updateStatusInStore`, `updateRoleInStore`, and automatic insertion of newly registered users into the store (`createUser`).
 - **Orchestration Hook (`useUsers` & `useCreateUser`)**: Orchestrates service calls (`refreshUsers`, `handleUpdateStatus`, `handleUpdateRole`), search filtering (by code, name, email, phone, or address), role/status filtering, selected user modal state, and role validation on the first wizard step.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 
@@ -539,6 +3709,56 @@
 - **`UserStatusDialog` (`user-status-dialog.tsx`)**: Confirmation modal triggered from the table action column before activating or deactivating an account.
 - **`UserCreateDialog` (`user-create-dialog.tsx`)**: Modal dialog embedding `<CreateUserWizard mode="admin" />` to allow creating new users directly from the admin screen.
 - **`AdminUserSection` (`admin-user-section.tsx`)**: Main client container integrating header, mock restoration button, new user dialog, KPI stats, filters, data table, and details dialog.
+
+---
+
+## 2026-11-18 — Permission Control & Admin Protection via `src/proxy.ts` and Cookies
+
+### Summary
+Implemented route protection and permission control for the admin panel (`/admin` and sub-routes) restricting access strictly to users with the `admin` role. In accordance with Next.js 16 file conventions, created `src/proxy.ts` to inspect incoming cookies and JWT claims, and updated `src/app/admin/layout.tsx` for multi-layer server-side protection.
+
+### Files modified / created
+- `src/features/auth/utils/auth-cookie.ts` *(new)* — Helper functions to manage cookies (`accessToken`, `userRole`), safely decode JWT payloads (`parseJwt`), and check token expiration and admin authorization (`isTokenAdmin`, `isTokenExpired`).
+- `src/proxy.ts` *(new)* — Next.js 16 Proxy running on `/admin` and `/admin/:path*`. Validates the existence and expiration of `accessToken` in browser cookies and ensures `role === "admin"`, otherwise redirects unauthorized or unauthenticated requests to `/`.
+- `src/features/auth/stores/auth.store.ts` — Synchronizes browser cookies on `setSession` (`setAuthCookies`), `clearSession` (`clearAuthCookies`), and rehydration (`onRehydrateStorage`).
+- `src/app/admin/layout.tsx` — Replaced legacy `mockUser` check with server-side cookie and JWT validation using `next/headers` `cookies()`. Non-admin or unauthenticated access redirects to `/`.
+
+---
+
+## 2026-11-18 — Admin Sidebar Profile: Live data from `GET /auth/me`
+
+### Summary
+Replaced the static mock user in the admin sidebar footer dropdown with real data fetched from `GET /auth/me`, using the stored `accessToken` as the `Authorization: Bearer` header.
+
+### Files modified / created
+- `src/features/auth/schemas/auth.schema.ts` — Added `meUserSchema`, `meResponseSchema`, `MeUser` and `MeResponse` types.
+- `src/features/auth/services/auth.service.ts` — Added `authService.me(accessToken)` calling `GET /auth/me` with Bearer token, validated with `meResponseSchema`.
+- `src/features/auth/hooks/use-admin-profile.ts` *(new)* — `useAdminProfile` hook: reads `accessToken` from the store, calls `authService.me()` on mount, exposes `{ profile, isLoading, error }`.
+- `src/components/admin-user-info.tsx` — Fully rewritten: consumes `useAdminProfile` and `useAuth`. Shows a skeleton while loading; derives initials and role label at render time; wires the "Sair" item to `logout()`.
+- `src/components/admin-sidebar.tsx` — Removed `user` prop and all `mockUser` / `getMockUserRoleLabel` imports. `<AdminUserInfo />` is now self-contained.
+
+---
+
+
+
+### Summary
+Corrected the login response schema to match the actual API contract — `data.accessToken` (JWT) and `data.user` (`id`, `name`, `email`, `role`). The token is now persisted in the Zustand store alongside the user.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — `AuthUser` simplified to `{ id, name, email, role }`. `loginResponseSchema` now validates `data.accessToken` + `data.user`. Service returns `{ user, accessToken }` on success.
+- `src/features/auth/stores/auth.store.ts` — Added `accessToken: string | null` to state. Renamed `setUser/clearUser` → `setSession(user, accessToken) / clearSession()`.
+- `src/features/auth/hooks/use-auth.ts` — Updated to call `setSession` with both `user` and `accessToken`. Exposes `accessToken` for use in future authenticated requests.
+
+---
+
+
+
+### Summary
+Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/login` call using the project's `http()` utility. The response is validated with Zod before being stored.
+
+### Files modified
+- `src/features/auth/services/auth.service.ts` — Removed mock array; now calls `http("/auth/login", { method: "POST", body: ... })`, parses the response with `loginResponseSchema` (Zod), and surfaces API errors via `getErrorMessage()`. `AuthUser` interface updated to match the real API shape (`phone`, `isActive`, `createdAt`, `updatedAt`, `addresses`).
+- `src/features/auth/components/user-menu.tsx` — Replaced `user.initials` / `user.avatarUrl` (removed from API shape) with initials derived from the user's name at render time.
 
 ---
 

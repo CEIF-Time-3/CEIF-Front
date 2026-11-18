@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { FileText, Home, Package, UserRoundPlus } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AdminUserInfo, type UserInfo } from "@/components/admin-user-info";
+import { AdminUserInfo } from "@/components/admin-user-info";
 import { PastelIcon } from "@/components/icons/logo-icon";
 import {
 	Sidebar,
@@ -18,10 +18,6 @@ import {
 	SidebarMenuItem,
 	SidebarRail,
 } from "@/components/ui/sidebar";
-import { getMockUserRoleLabel, mockUser } from "@/mocks/user";
-
-export type { UserInfo };
-export { AdminUserInfo };
 
 export interface NavItem {
 	title: string;
@@ -31,13 +27,7 @@ export interface NavItem {
 
 export interface AdminSidebarProps {
 	items?: NavItem[];
-	user?: UserInfo;
 }
-
-const defaultUser: UserInfo = {
-	...mockUser,
-	role: getMockUserRoleLabel(mockUser.role),
-};
 
 const defaultNavigationItems: NavItem[] = [
 	{
@@ -64,7 +54,6 @@ const defaultNavigationItems: NavItem[] = [
 
 export const AdminSidebar = ({
 	items = defaultNavigationItems,
-	user = defaultUser,
 }: AdminSidebarProps) => {
 	const pathname = usePathname();
 
@@ -114,7 +103,7 @@ export const AdminSidebar = ({
 			</SidebarContent>
 
 			<SidebarFooter>
-				<AdminUserInfo user={user} />
+				<AdminUserInfo />
 			</SidebarFooter>
 			<SidebarRail />
 		</Sidebar>

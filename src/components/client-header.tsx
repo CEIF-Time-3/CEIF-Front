@@ -1,15 +1,18 @@
 "use client";
 
-import { LayoutDashboard, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { PastelIcon } from "@/components/icons/logo-icon";
 import { Badge } from "@/components/ui/badge";
+import { LoginDialog } from "@/features/auth/components/login-dialog";
+import { UserMenu } from "@/features/auth/components/user-menu";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useCart } from "@/features/cart/hooks/use-cart";
-import { getMockUserRoleLabel, mockUser } from "@/mocks/user";
 
 export const ClientHeader = () => {
 	const { totalItems, isHydrated } = useCart();
+	const { isAuthenticated } = useAuth();
 
 	const badgeCount = React.useMemo(() => {
 		return totalItems > 99 ? "99+" : totalItems;
@@ -27,19 +30,7 @@ export const ClientHeader = () => {
 					</Link>
 				</div>
 
-				<div className="flex items-center gap-4">
-					<Badge variant="secondary">
-						{getMockUserRoleLabel(mockUser.role)}
-					</Badge>
-					{mockUser.role === "admin" && (
-						<Link
-							className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm font-medium transition-colors"
-							href="/admin"
-						>
-							<LayoutDashboard className="size-4" />
-							<span className="hidden sm:inline">Painel admin</span>
-						</Link>
-					)}
+				<div className="flex items-center gap-3">
 					<Link
 						href="/carrinho"
 						aria-label="Carrinho"
@@ -58,6 +49,8 @@ export const ClientHeader = () => {
 						</div>
 						<span className="hidden sm:inline">Carrinho</span>
 					</Link>
+
+					{isAuthenticated ? <UserMenu /> : <LoginDialog />}
 				</div>
 			</div>
 		</header>
