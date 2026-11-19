@@ -13,8 +13,6 @@ export class ProductService {
 	async getAll(): Promise<Result<ProductWithCategory[], string>> {
 		try {
 			const data = await http<unknown>("/products-with-category");
-
-			console.log("data", data);
 			const parsedData = productResponseSchema.parse(data);
 
 			return { success: true, data: parsedData.data };

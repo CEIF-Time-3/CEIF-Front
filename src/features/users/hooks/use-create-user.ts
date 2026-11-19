@@ -21,6 +21,7 @@ export const emptyPersonalValues: CreateUserPersonalFormInput = {
 	name: "",
 	email: "",
 	phone: "",
+	password: "",
 };
 
 export const emptyAddressValues: CreateUserAddressFormInput = {

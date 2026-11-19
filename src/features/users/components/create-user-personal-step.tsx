@@ -58,7 +58,7 @@ export const CreateUserPersonalStep = ({
 					placeholder="Ex.: Maria da Silva"
 					required
 				/>
-				<div className="grid gap-4 sm:grid-cols-2">
+				<div className="grid gap-4 sm:grid-cols-3">
 					<FieldInput
 						autoComplete="email"
 						control={control}
@@ -79,6 +79,16 @@ export const CreateUserPersonalStep = ({
 						placeholder="(00) 00000-0000"
 						required
 						type="tel"
+					/>
+					<FieldInput
+						autoComplete='new-password'
+						control={control}
+						id="password"
+						label="Senha"
+						name="password"
+						placeholder="••••••••"
+						required
+						type="password"
 					/>
 				</div>
 			</section>

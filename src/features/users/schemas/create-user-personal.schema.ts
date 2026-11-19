@@ -12,6 +12,11 @@ export const createUserPersonalSchema = z.object({
 		.trim()
 		.min(1, "O telefone é obrigatório")
 		.max(20, "O telefone deve ter no máximo 20 caracteres"),
+	password: z
+		.string()
+		.trim()
+		.min(6, "A senha deve ter no mínimo 6 caracteres")
+		.max(20, "A senha deve ter no máximo 20 caracteres"),
 });
 
 export type CreateUserPersonalFormInput = z.input<
