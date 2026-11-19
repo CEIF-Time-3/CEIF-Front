@@ -3854,3 +3854,30 @@ Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/logi
 - **`UserDetailsDialog` & `CreateUserRoleField`**: Set role selection options strictly to `customer` ("Cliente") and `admin` ("Administrador").
 - **`MOCK_USERS`**: Updated mock users from `"cliente"` to `"customer"`.
 - **Unit Tests**: Updated `user.service.test.ts` to test payload validation with `customer` and `admin`.
+
+
+---
+
+# Implementation History: Unit & Integration Test Coverage Expansion (2026-11-19)
+
+### 1. Utilities & Schemas Tests
+- Added unit tests for HTTP client and `HttpError` ([src/test/utils/http.test.ts](src/test/utils/http.test.ts)), `getErrorMessage` ([src/test/utils/get-error-message.test.ts](src/test/utils/get-error-message.test.ts)), and JWT/cookie auth helpers ([src/test/utils/auth-cookie.test.ts](src/test/utils/auth-cookie.test.ts)).
+- Added Zod schema validation tests for cart/checkout ([src/test/schemas/cart.schema.test.ts](src/test/schemas/cart.schema.test.ts)) and user personal/address/lookup schemas ([src/test/schemas/user.schemas.test.ts](src/test/schemas/user.schemas.test.ts)).
+
+### 2. Services, Stores & Hooks Tests
+- Added tests for `cartService`, `useCartStore` (`parseProductPrice` and item actions), and `useCart` (delivery fees, free delivery threshold, coupons, checkout flow).
+- Added tests for `authService` & `useAuthStore`, `addressesService`, `productService` & `useProductStore`, `categorieService` & `useCategorieStore`, `ordersService` & `useOrderStore`, and `useUserStore`.
+- Expanded [src/test/services/user.service.test.ts](src/test/services/user.service.test.ts) to cover `updateUserStatus`, `updateUserRole`, `createUser`, `userService` class methods, and mapping edge cases.
+
+### 3. Component Tests
+- Added tests for `CartItemCard` & free-delivery state in `CartItemList` ([src/test/components/cart/cart-item-card.test.tsx](src/test/components/cart/cart-item-card.test.tsx)).
+- Added tests for `UserRoleBadge`, `UserStatusBadge`, `UserStatusDialog`, `UserDetailsDialog` (`formatUserDate`), and `AdminUserTable` / `DataTable` (loading, empty state, pagination, actions).
+
+
+### 4. CI Coverage Integration (`.github/workflows/CI.yml`)
+- Updated the test step in `.github/workflows/CI.yml` to run `npm run test:coverage`.
+- Added an `actions/upload-artifact@v4` step (`coverage-report`) to publish the generated `coverage/` report with a 14-day retention period.
+- Added `"json-summary"` to `vitest.config.mts` coverage reporters (preserving thresholds: 80% lines/statements/functions, 60% branches).
+- Added `permissions` (`contents: read`, `pull-requests: write`) and a `Resumo de coverage no PR e Job Summary` step using `actions/github-script@v7` in `.github/workflows/CI.yml` to publish a coverage table to `$GITHUB_STEP_SUMMARY` and create/update a deduplicated PR comment.
+- Simplified `.github/workflows/CI.yml` by removing the PR comment/summary script and keeping only `Testes com coverage` + `Guardar relatório HTML` (`actions/upload-artifact@v4` uploading `coverage/`).
+- Reverted `vitest.config.mts` coverage reporters back to `["text", "json", "html"]` (keeping the configured thresholds).

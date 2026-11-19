@@ -29,8 +29,15 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Testes
-        run: npm run test:run
+      - name: Testes com coverage
+        run: npm run test:coverage
+
+      - name: Guardar relatório HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
 
       - name: Build
         run: npm run build

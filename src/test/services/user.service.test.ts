@@ -1,9 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { formatPhoneNumber } from "@/features/users/components/admin-user-table";
 import {
+	createUser,
 	formatUserInitials,
 	getUsers,
 	mapApiUserToAdminUser,
+	updateUserRole,
+	updateUserStatus,
+	userService,
 } from "@/services/user.service";
 import * as httpModule from "@/utils/http";
 
@@ -27,6 +31,7 @@ describe("UserService and User mapping", () => {
 		expect(formatPhoneNumber("85999990001")).toBe("(85) 99999-0001");
 		expect(formatPhoneNumber("1198765432")).toBe("(11) 9876-5432");
 		expect(formatPhoneNumber("(85) 99999-0001")).toBe("(85) 99999-0001");
+		expect(formatPhoneNumber("12345")).toBe("12345");
 	});
 
 	it("maps ApiUser to AdminUser properly", () => {
@@ -102,5 +107,91 @@ describe("UserService and User mapping", () => {
 		if (!result.success) {
 			expect(result.error).toBe("Network Error");
 		}
+	});
+
+	it("maps inactive user without index and normalizes unknown role to customer", () => {
+		const mapped = mapApiUserToAdminUser({
+			id: "abcd-1234",
+			name: "Carlos",
+			email: "carlos@ceif.com",
+			phone: "",
+			role: "unknown-role",
+			isActive: false,
+		});
+
+		expect(mapped.code).toBe("#USR-ABCD");
+		expect(mapped.status).toBe("inactive");
+		expect(mapped.role).toBe("customer");
+		expect(mapped.phone).toBe("");
+	});
+
+	it("validates and updates user status and role", async () => {
+		expect(await updateUserStatus("usr-1", "inactive")).toEqual({
+			success: true,
+			data: { userId: "usr-1", status: "inactive" },
+		});
+		const invalidStatus = await updateUserStatus("", "active");
+		expect(invalidStatus.success).toBe(false);
+
+		expect(await updateUserRole("usr-1", "admin")).toEqual({
+			success: true,
+			data: { userId: "usr-1", role: "admin" },
+		});
+		const invalidRole = await updateUserRole("", "customer");
+		expect(invalidRole.success).toBe(false);
+	});
+
+	it("creates user via POST /users/register and handles error", async () => {
+		const payload = {
+			name: "Novo Usuário",
+			email: "novo@ceif.com",
+			phone: "85999990001",
+			password: "password123",
+			addresses: [],
+		};
+
+		const httpSpy = vi.spyOn(httpModule, "http").mockResolvedValue({});
+		expect(await createUser(payload)).toEqual({
+			success: true,
+			data: "Usuário criado com sucesso!",
+		});
+		expect(httpSpy).toHaveBeenCalledWith("/users/register", {
+			method: "POST",
+			body: JSON.stringify(payload),
+		});
+
+		vi.spyOn(httpModule, "http").mockRejectedValue(
+			new Error("Email já cadastrado"),
+		);
+		expect(await createUser(payload)).toEqual({
+			success: false,
+			error: "Email já cadastrado",
+		});
+	});
+
+	it("delegates correctly through userService instance methods", async () => {
+		vi.spyOn(httpModule, "http").mockResolvedValue({
+			success: true,
+			data: [],
+		});
+
+		expect((await userService.getAll()).success).toBe(true);
+		expect((await userService.updateStatus("u-1", "active")).success).toBe(
+			true,
+		);
+		expect((await userService.updateRole("u-1", "customer")).success).toBe(
+			true,
+		);
+		expect(
+			(
+				await userService.createUser({
+					name: "Ana",
+					email: "ana@ceif.com",
+					phone: "85999990001",
+					password: "password123",
+					addresses: [],
+				})
+			).success,
+		).toBe(true);
 	});
 });
