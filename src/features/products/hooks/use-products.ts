@@ -9,6 +9,11 @@ import type {
 	ProductWithCategory,
 } from "@/features/products/schemas/products.schema";
 import { useProductStore } from "@/features/products/stores/product.store";
+import {
+	ALL_CATEGORIES_OPTION,
+	buildCategoryFilterOptions,
+	normalizeCategoryName,
+} from "@/features/products/utils/category-filter";
 import { MOCK_PRODUCTS } from "@/mocks/products";
 
 export type ProductStatusFilter = "all" | "available" | "unavailable";
@@ -35,7 +40,9 @@ export const useProducts = ({
 	const deleteProduct = useProductStore((state) => state.deleteProduct);
 
 	const [searchQuery, setSearchQuery] = React.useState("");
-	const [selectedCategory, setSelectedCategory] = React.useState("Todos");
+	const [selectedCategory, setSelectedCategory] = React.useState(
+		ALL_CATEGORIES_OPTION,
+	);
 	const [statusFilter, setStatusFilter] =
 		React.useState<ProductStatusFilter>("all");
 
@@ -88,14 +95,22 @@ export const useProducts = ({
 	);
 
 	const categoriesOptions = React.useMemo(
-		() => ["Todos", ...categories.map((c) => c.name)],
+		() => buildCategoryFilterOptions(categories),
 		[categories],
 	);
 
 	const filteredProducts = React.useMemo(() => {
 		const query = searchQuery.trim().toLowerCase();
-		const categoryObj = categories.find(
-			(c) => c.name.toLowerCase() === selectedCategory.toLowerCase(),
+		const normalizedSelectedCategory = normalizeCategoryName(selectedCategory);
+		const isAllCategories =
+			normalizedSelectedCategory ===
+			normalizeCategoryName(ALL_CATEGORIES_OPTION);
+		const matchingCategoryIds = new Set(
+			categories
+				.filter(
+					(c) => normalizeCategoryName(c.name) === normalizedSelectedCategory,
+				)
+				.map((c) => c.id),
 		);
 
 		return products.filter((product) => {
@@ -110,17 +125,15 @@ export const useProducts = ({
 					true;
 
 			const matchesCategory =
-				selectedCategory === "Todos" ||
-				(categoryObj
-					? productWithCategory.categoryId === categoryObj.id ||
-						productWithCategory.categoryName?.toLowerCase() ===
-							selectedCategory.toLowerCase() ||
-						product.description
-							?.toLowerCase()
-							.includes(selectedCategory.toLowerCase()) === true
-					: product.description
-							?.toLowerCase()
-							.includes(selectedCategory.toLowerCase()) === true);
+				isAllCategories ||
+				(productWithCategory.categoryId != null &&
+					matchingCategoryIds.has(productWithCategory.categoryId)) ||
+				(productWithCategory.categoryName != null &&
+					normalizeCategoryName(productWithCategory.categoryName) ===
+						normalizedSelectedCategory) ||
+				product.description
+					?.toLowerCase()
+					.includes(normalizedSelectedCategory) === true;
 
 			const matchesStatus =
 				statusFilter === "all" ||
@@ -133,7 +146,7 @@ export const useProducts = ({
 
 	const resetFilters = React.useCallback(() => {
 		setSearchQuery("");
-		setSelectedCategory("Todos");
+		setSelectedCategory(ALL_CATEGORIES_OPTION);
 		setStatusFilter("all");
 	}, []);
 

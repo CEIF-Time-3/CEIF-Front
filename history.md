@@ -3881,3 +3881,19 @@ Replaced mock credential logic in `auth.service.ts` with a real `POST /auth/logi
 - Added `permissions` (`contents: read`, `pull-requests: write`) and a `Resumo de coverage no PR e Job Summary` step using `actions/github-script@v7` in `.github/workflows/CI.yml` to publish a coverage table to `$GITHUB_STEP_SUMMARY` and create/update a deduplicated PR comment.
 - Simplified `.github/workflows/CI.yml` by removing the PR comment/summary script and keeping only `Testes com coverage` + `Guardar relatório HTML` (`actions/upload-artifact@v4` uploading `coverage/`).
 - Reverted `vitest.config.mts` coverage reporters back to `["text", "json", "html"]` (keeping the configured thresholds).
+
+
+---
+
+# Implementation History: Category Filter Deduplication Fix (2026-11-19)
+
+### Summary
+Fixed a bug in the category filter layer where duplicate category entries (case variations, extra whitespace, repeated API records, or `"Todos"` entries) caused the same category filters to render multiple times and prevented products linked to duplicate category IDs from matching.
+
+### Files created / modified
+- `src/features/products/utils/category-filter.ts` *(new)* — Added `ALL_CATEGORIES_OPTION`, `normalizeCategoryName`, `deduplicateCategoryNames`, and `buildCategoryFilterOptions` helpers to normalize and deduplicate category filter options.
+- `src/features/products/hooks/use-products.ts` — Updated `categoriesOptions` to use `buildCategoryFilterOptions` and updated `filteredProducts` to match all category IDs sharing the selected normalized category name.
+- `src/features/products/components/product-category-filter.tsx` — Added defensive deduplication via `deduplicateCategoryNames` and normalized keys/comparisons.
+- `src/features/products/components/admin-product-filters.tsx` — Memoized and deduplicated category select options via `deduplicateCategoryNames`.
+- `src/test/hooks/use-products.test.ts` *(new)* — Added unit tests covering category filter deduplication and filtering across duplicate category IDs.
+- `src/test/components/products/product-category-filter.test.tsx` *(new)* — Added component tests verifying `ProductCategoryFilter` and `AdminProductFilters` do not render duplicated category filters.

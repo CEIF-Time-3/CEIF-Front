@@ -1,4 +1,9 @@
+import React from "react";
 import { Button } from "@/components/ui/button";
+import {
+	deduplicateCategoryNames,
+	normalizeCategoryName,
+} from "@/features/products/utils/category-filter";
 
 interface ProductCategoryFilterProps {
 	categories: string[];
@@ -11,15 +16,21 @@ export const ProductCategoryFilter = ({
 	selectedCategory,
 	onSelectCategory,
 }: ProductCategoryFilterProps) => {
+	const uniqueCategories = React.useMemo(
+		() => deduplicateCategoryNames(categories),
+		[categories],
+	);
+	const normalizedSelectedCategory = normalizeCategoryName(selectedCategory);
+
 	return (
 		<div className="flex w-full flex-wrap items-center gap-2 pb-2">
-			{categories.map((category) => {
-				const isSelected =
-					selectedCategory.toLowerCase() === category.toLowerCase();
+			{uniqueCategories.map((category) => {
+				const normalizedCategory = normalizeCategoryName(category);
+				const isSelected = normalizedSelectedCategory === normalizedCategory;
 
 				return (
 					<Button
-						key={category}
+						key={normalizedCategory}
 						type="button"
 						variant={isSelected ? "default" : "outline"}
 						size="sm"
